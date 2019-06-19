@@ -39,6 +39,7 @@ public:
   /** Standard class type aliases. */
   using Self = TrimmedPointSetToPointSetMetricv4;
   using Superclass = PointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>;
+  using SuperclassPointer = typename Superclass::Pointer;
   using Pointer = SmartPointer<Self>;
   using ConstPointer = SmartPointer<const Self>;
 
@@ -82,6 +83,7 @@ public:
 
   /**  Type of the fixed point set. */
   using FixedPointSetType = TFixedPointSet;
+  using FixedPointSetPointer = typename TFixedPointSet::Pointer;
   using FixedPointType = typename TFixedPointSet::PointType;
   using FixedPixelType = typename TFixedPointSet::PixelType;
   using FixedPointsContainer = typename TFixedPointSet::PointsContainer;
@@ -116,6 +118,7 @@ public:
   using NeighborsIdentifierType = typename PointsLocatorType::NeighborsIdentifierType;
 
   using FixedTransformedPointSetType = PointSet<FixedPixelType, Self::PointDimension >;
+  using FixedTransformedPointSetPointer = typename FixedTransformedPointSetType::Pointer;
   using MovingTransformedPointSetType = PointSet<MovingPixelType, Self::PointDimension >;
 
   using DerivativeValueType = typename DerivativeType::ValueType;
@@ -139,33 +142,56 @@ public:
   /** Set fixed point set*/
   void SetFixedObject( const ObjectType *object ) override
     {
-    m_Metric.SetFixedObject();
+    m_Metric->SetFixedObject();
     }
 
   /** Set moving point set*/
   void SetMovingObject( const ObjectType *object ) override
     {
-    m_Metric.SetMovingObject();
+    m_Metric->SetMovingObject();
     }
 
   /** Get/Set the fixed pointset.  */
-  itkSetConstObjectMacro( FixedPointSet, FixedPointSetType );
-  itkGetConstObjectMacro( FixedPointSet, FixedPointSetType );
+  void SetFixedPointSet(const FixedPointSetType *set) override
+    {
+    m_Metric->SetFixedPointSet(set);
+    }
+
+  const FixedPointSetType * GetFixedPointSet() override
+    {
+    return m_Metric->GetFixedPointSet();
+    }
 
   /** Get the fixed transformed point set.  */
-  itkGetModifiableObjectMacro( FixedTransformedPointSet, FixedTransformedPointSetType );
+  FixedTransformedPointSetType * GetFixedTransformedPointSet() override
+    {
+    return m_Metric->GetFixedTransformedPointSet();
+    }
 
   /** Get/Set the moving point set.  */
-  itkSetConstObjectMacro( MovingPointSet, MovingPointSetType );
-  itkGetConstObjectMacro( MovingPointSet, MovingPointSetType );
+  void SetMovingPointSet(const MovingPointSetType *set) override
+    {
+    m_Metric->SetMovingPointSet(set);
+    }
+
+  const MovingPointSetType * GetMovingPointSet() override
+    {
+    return m_Metric->GetMovingPointSet();
+    }
 
   /** Get the moving transformed point set.  */
-  itkGetModifiableObjectMacro( MovingTransformedPointSet, MovingTransformedPointSetType );
-
+  MovingTransformedPointSetType * GetMovingTransformedPointSet() override
+    {
+    return m_Metric->GetFixedTransformedPointSet();
+    }
   /**
    * For now return the number of points used in the value/derivative calculations.
    */
-  SizeValueType GetNumberOfComponents() const;
+  SizeValueType GetNumberOfComponents() const
+    {
+    return m_Metric->GetNumberOfComponents();
+    }
+
 
   /**
    * This method returns the value of the metric based on the current
@@ -208,51 +234,48 @@ public:
    * the local metric value for a single point.  The \c PixelType may or
    * may not be used.  See class description for further explanation.
    */
-  virtual MeasureType GetLocalNeighborhoodValue( const PointType & p, const PixelType & pixel ) const
+  MeasureType GetLocalNeighborhoodValue( const PointType & p, const PixelType & pixel ) const override
     {
-    return m_Metric.GetLocalNeighborhoodValue(p, pixel);
+    return m_Metric->GetLocalNeighborhoodValue(p, pixel);
     }
 
   /**
    * Calculates the local derivative for a single point. The \c PixelType may or
    * may not be used.  See class description for further explanation.
    */
-  virtual LocalDerivativeType GetLocalNeighborhoodDerivative( const PointType &p, const PixelType & pixel ) const
+  LocalDerivativeType GetLocalNeighborhoodDerivative( const PointType &p, const PixelType & pixel ) const override
     {
-    return m_Metric.GetLocalNeighborhoodDerivative(p, pixel);
+    return m_Metric->GetLocalNeighborhoodDerivative(p, pixel);
     }
 
   /**
    * Calculates the local value/derivative for a single point.  The \c PixelType may or
    * may not be used.  See class description for further explanation.
    */
-  virtual void GetLocalNeighborhoodValueAndDerivative( const PointType &p,
-    MeasureType &m, LocalDerivativeType &l, const PixelType & pixel ) const
+  void GetLocalNeighborhoodValueAndDerivative( const PointType &p,
+    MeasureType &m, LocalDerivativeType &l, const PixelType & pixel ) const override
     {
-    m_Metric.GetLocalNeighborhoodDerivative(p, m, l, pixel);
+    m_Metric->GetLocalNeighborhoodDerivative(p, m, l, pixel);
     }
 
   /**
    * Get the virtual point set, derived from the fixed point set.
    * If the virtual point set has not yet been derived, it will be
    * in this call. */
-  const VirtualPointSetType * GetVirtualTransformedPointSet() const
+  VirtualPointSetType * GetVirtualTransformedPointSet() const override
     {
-    return m_Metric.GetVirtualTransformedPointSet();
+    return m_Metric->GetVirtualTransformedPointSet();
     }
 
   /**
    * Initialize the metric by making sure that all the components
    *  are present and plugged together correctly.
    */
-  void Initialize() override
-    {
-    m_Metric.Initialize();
-    }
+  void Initialize() override;
 
   bool SupportsArbitraryVirtualDomainSamples() const override
     {
-    return m_Metric.SupportsArbitraryVirtualDomainSamples();
+    return m_Metric->SupportsArbitraryVirtualDomainSamples();
     }
 
   /**
@@ -266,50 +289,88 @@ public:
    * If this variable is set to false, then the derivative array will be of length
    * = PointDimension * m_FixedPointSet->GetNumberOfPoints().
    */
-  itkSetMacro( StoreDerivativeAsSparseFieldForLocalSupportTransforms, bool );
-  itkGetConstMacro( StoreDerivativeAsSparseFieldForLocalSupportTransforms, bool );
-  itkBooleanMacro( StoreDerivativeAsSparseFieldForLocalSupportTransforms );
+  void SetStoreDerivativeAsSparseFieldForLocalSupportTransforms(bool sparse) override
+    {
+    m_Metric->SetStoreDerivativeAsSparseFieldForLocalSupportTransforms(sparse);
+    }
+  bool GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() const override
+    {
+    return m_Metric->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms();
+    }
+  void StoreDerivativeAsSparseFieldForLocalSupportTransformsOn() override
+    {
+    m_Metric->StoreDerivativeAsSparseFieldForLocalSupportTransformsOn();
+    }
+  void StoreDerivativeAsSparseFieldForLocalSupportTransformsOff() override
+    {
+    m_Metric->StoreDerivativeAsSparseFieldForLocalSupportTransformsOff();
+    }
 
   /**
    *
    */
-  itkSetMacro( CalculateValueAndDerivativeInTangentSpace, bool );
-  itkGetConstMacro( CalculateValueAndDerivativeInTangentSpace, bool );
-  itkBooleanMacro( CalculateValueAndDerivativeInTangentSpace );
+  void SetCalculateValueAndDerivativeInTangentSpace(bool sparse) override
+    {
+    m_Metric->SetCalculateValueAndDerivativeInTangentSpace(sparse);
+    }
+  bool GetCalculateValueAndDerivativeInTangentSpace() const override
+    {
+    return m_Metric->GetCalculateValueAndDerivativeInTangentSpace();
+    }
+  void CalculateValueAndDerivativeInTangentSpaceOn() override
+    {
+    m_Metric->CalculateValueAndDerivativeInTangentSpaceOn();
+    }
+  void CalculateValueAndDerivativeInTangentSpaceOff() override
+    {
+    m_Metric->CalculateValueAndDerivativeInTangentSpaceOff();
+    }
+
+  itkSetObjectMacro(Metric, Superclass)
+  itkGetConstObjectMacro(Metric, Superclass)
+
+  /**
+   * Get/Set distance cutoff
+   */
+  itkGetMacro( DistanceCutoff, TInternalComputationValueType );
+  itkSetMacro( DistanceCutoff, TInternalComputationValueType );
+
+  /**
+  * Get/Set the cut off percentile cut off value.
+  */
+  void SetPercentile( unsigned int percentile )
+    {
+    if( percentile > 0 && percentile <= 100 )
+      {
+      m_Percentile = percentile;
+      }
+    else
+      {
+      itkExceptionMacro( "Percentile value must belong to (0;100]." )
+      }
+    }
+  itkGetMacro( Percentile, unsigned int );
+
 
 protected:
   TrimmedPointSetToPointSetMetricv4();
   ~TrimmedPointSetToPointSetMetricv4() override = default;
   void PrintSelf( std::ostream & os, Indent indent ) const override;
 
-  typename FixedPointSetType::ConstPointer                m_FixedPointSet;
-  mutable typename FixedTransformedPointSetType::Pointer  m_FixedTransformedPointSet;
-
-  mutable typename PointsLocatorType::Pointer             m_FixedTransformedPointsLocator;
-
-  typename MovingPointSetType::ConstPointer               m_MovingPointSet;
-  mutable typename MovingTransformedPointSetType::Pointer m_MovingTransformedPointSet;
-
-  mutable typename PointsLocatorType::Pointer             m_MovingTransformedPointsLocator;
-
-  /** Holds the fixed points after transformation into virtual domain. */
-  mutable VirtualPointSetPointer                          m_VirtualTransformedPointSet;
-
-
   /**
    * Prepare point sets for use. */
-  virtual void InitializePointSets() const
+  void InitializePointSets() const override
     {
-    m_Metric.InitializePointSets();
+    m_Metric->InitializePointSets();
     }
 
   /**
    * Initialize to prepare for a particular iteration, generally
    * an iteration of optimization. Distinct from Initialize()
    * which is a one-time initialization. */
-  virtual void InitializeForIteration() const
+  void InitializeForIteration() const override
     {
-    m_Metric.InitializeForIteration();
+    m_Metric->InitializeForIteration();
     }
 
   /**
@@ -317,9 +378,9 @@ protected:
    * is valid if, when transformed into the virtual domain using
    * the inverse of the FixedTransform, it is within the defined
    * virtual domain bounds. */
-  virtual SizeValueType CalculateNumberOfValidFixedPoints() const
+  SizeValueType CalculateNumberOfValidFixedPoints() const override
     {
-    m_Metric.CalculateNumberOfValidFixedPoints();
+    m_Metric->CalculateNumberOfValidFixedPoints();
     }
 
   /** Helper method allows for code reuse while skipping the metric value
@@ -334,7 +395,7 @@ protected:
    */
   void TransformFixedAndCreateVirtualPointSet() const
     {
-    m_Metric.TransformFixedAndCreateVirtualPointSet();
+    m_Metric->TransformFixedAndCreateVirtualPointSet();
     }
 
   /**
@@ -345,7 +406,7 @@ protected:
    */
   void TransformMovingPointSet() const
     {
-    m_Metric.TransformMovingPointSet();
+    m_Metric->TransformMovingPointSet();
     }
 
   /**
@@ -354,39 +415,45 @@ protected:
    */
   void InitializePointsLocators() const
     {
-    m_Metric.InitializePointsLocators();
+    m_Metric->InitializePointsLocators();
     }
 
   /**
    * Store a derivative from a single point in a field.
    * Only relevant when active transform has local support.
    */
-  void StorePointDerivative( const VirtualPointType &, const DerivativeType &, DerivativeType & ) const;
+  void StorePointDerivative( const VirtualPointType &, const DerivativeType &, DerivativeType & ) const
+    {
+    m_Metric->StorePointDerivative();
+    }
 
   using MetricCategoryType = typename Superclass::MetricCategoryType;
 
   /** Get metric category */
   MetricCategoryType GetMetricCategory() const override
     {
-    return m_Metric.GetMetricCategory();
+    return m_Metric->GetMetricCategory();
     }
 
 
 private:
-  PointSetToPointSetMetricv4::Pointer m_Metric;
-  mutable bool m_MovingTransformPointLocatorsNeedInitialization;
-  mutable bool m_FixedTransformPointLocatorsNeedInitialization;
+  //Decorated metric to be used
+  SuperclassPointer m_Metric;
 
-  // Flag to keep track of whether a warning has already been issued
-  // regarding the number of valid points.
-  mutable bool m_HaveWarnedAboutNumberOfValidPoints;
+  /**
+  * Cut off value to filter the number of points used to drive the registration
+  * at each iteration. Points from the fixed point set whose error measurement
+  * are within the given percentile are kept (i.e. if percentile is set to 80,
+  * all the points below the 80th percentile are kept) to compute the error
+  * and the derivative. Other points are ignored.
+  */
+  unsigned int m_Percentile;
 
-  // Flag to store derivatives at fixed point locations with the rest being zero gradient
-  // (default = true).
-  bool m_StoreDerivativeAsSparseFieldForLocalSupportTransforms;
-
-  mutable ModifiedTimeType m_MovingTransformedPointSetTime;
-  mutable ModifiedTimeType m_FixedTransformedPointSetTime;
+  /**
+   * Dsitance based cut off value, remove points larger than distance cutoff.
+   * Can be used in conjunction with percentile filtering
+   * */
+  TInternalComputationValueType m_DistanceCutoff;
 };
 } // end namespace itk
 

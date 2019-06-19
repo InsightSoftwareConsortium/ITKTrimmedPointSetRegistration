@@ -12,14 +12,14 @@ except ImportError:
     sys.exit(1)
 
 setup(
-    name='itk-trimmmedpointsetregistration',
+    name='itk-trimmedpointsetregistration',
     version='0.1.0',
     author='Samuel Gerber',
     author_email='samuel.gerber@kitware.com',
     packages=['itk'],
     package_dir={'itk': 'itk'},
-    download_url=r'https://github.com/InsightSoftwareConsortium/ITKTrimmmedPointSetRegistration',
-    description=r'This is a module tfor trimmed point set registration',
+    download_url=r'https://github.com/samuelgerber/ITKTrimmedPointSetRegistration',
+    description=r'This is a module for trimmed point set registration',
     long_description='This module implements a decorator to the PointSetMetric that overrides the accumulation of the value and derivative computation to use a trimmed number of points.',
     classifiers=[
         "License :: OSI Approved :: Apache Software License",

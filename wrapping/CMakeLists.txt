@@ -1,3 +1,3 @@
-itk_wrap_module(TrimmmedPointSetRegistration)
+itk_wrap_module(TrimmedPointSetRegistration)
 itk_auto_load_submodules()
 itk_end_wrap_module()

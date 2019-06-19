@@ -1,16 +1,16 @@
-ITKTrimmmedPointSetRegistration
+ITKTrimmedPointSetRegistration
 =================================
 
-.. image:: https://dev.azure.com/InsightSoftwareConsortium/ITKModules/_apis/build/status/itktrimmmedpointsetregistration?branchName=master
+.. image:: https://dev.azure.com/InsightSoftwareConsortium/ITKModules/_apis/build/status/itktrimmedpointsetregistration?branchName=master
     :target: https://dev.azure.com/InsightSoftwareConsortium/ITKModules/_build/latest?definitionId=8&branchName=master
     :alt:    Build Status
 
-.. image:: https://img.shields.io/pypi/v/itk-trimmmedpointsetregistration.svg
-    :target: https://pypi.python.org/pypi/itk-trimmmedpointsetregistration
+.. image:: https://img.shields.io/pypi/v/itk-trimmedpointsetregistration.svg
+    :target: https://pypi.python.org/pypi/itk-trimmedpointsetregistration
     :alt: PyPI Version
 
 .. image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-    :target: https://github.com/InsightSoftwareConsortium/ITKTrimmmedPointSetRegistration/blob/master/LICENSE)
+    :target: https://github.com/InsightSoftwareConsortium/ITKTrimmedPointSetRegistration/blob/master/LICENSE)
     :alt: License
 
 Overview
