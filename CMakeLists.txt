@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(TrimmedPointSetRegistration)
 
-set(TrimmedPointSetRegistration_LIBRARIES TrimmedPointSetRegistration)
+#set(TrimmedPointSetRegistration_LIBRARIES TrimmedPointSetRegistration)
 
 if(NOT ITK_SOURCE_DIR)
   find_package(ITK REQUIRED)
