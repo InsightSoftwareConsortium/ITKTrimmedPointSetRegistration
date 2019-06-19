@@ -1,0 +1,5 @@
+set(TrimmmedPointSetRegistration_SRCS
+  itkMinimalStandardRandomVariateGenerator.cxx
+  )
+
+itk_module_add_library(TrimmmedPointSetRegistration ${TrimmmedPointSetRegistration_SRCS})
