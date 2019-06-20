@@ -19,3 +19,7 @@ Overview
 This is a module tfor trimmed point set registration
 
 This module implements a decorator to the PointSetMetric that overrides the accumulation of the value and derivative computation to use a trimmed number of points.
+
+![jensen.pdf](Documentation/Figures/jensen.pdf)
+![euclidean.pdf](Documentaiton/Figures/euclidean.pdf)
+![trimmed-euclidean.pdf](Documentation/Figures/trimmed-euclidean.pdf)
