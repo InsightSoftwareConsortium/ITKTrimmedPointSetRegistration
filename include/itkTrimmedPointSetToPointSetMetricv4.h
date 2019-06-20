@@ -43,6 +43,9 @@ public:
   using Pointer = SmartPointer<Self>;
   using ConstPointer = SmartPointer<const Self>;
 
+  /** Method for creation through the object factory. */
+  itkNewMacro( Self );
+  
   /** Run-time type information (and related methods). */
   itkTypeMacro( TrimmedPointSetToPointSetMetricv4, PointSetToPointSetMetricv4 );
 
@@ -157,7 +160,7 @@ public:
     m_Metric->SetFixedPointSet(set);
     }
 
-  const FixedPointSetType * GetFixedPointSet() override
+  const FixedPointSetType * GetFixedPointSet() const override
     {
     return m_Metric->GetFixedPointSet();
     }
@@ -174,7 +177,7 @@ public:
     m_Metric->SetMovingPointSet(set);
     }
 
-  const MovingPointSetType * GetMovingPointSet() override
+  const MovingPointSetType * GetMovingPointSet() const override
     {
     return m_Metric->GetMovingPointSet();
     }
@@ -262,7 +265,7 @@ public:
    * Get the virtual point set, derived from the fixed point set.
    * If the virtual point set has not yet been derived, it will be
    * in this call. */
-  VirtualPointSetType * GetVirtualTransformedPointSet() const override
+  VirtualPointSetType * GetVirtualTransformedPointSet() const 
     {
     return m_Metric->GetVirtualTransformedPointSet();
     }
@@ -333,7 +336,6 @@ public:
    * Get/Set distance cutoff
    */
   itkGetMacro( DistanceCutoff, TInternalComputationValueType );
-  itkSetMacro( DistanceCutoff, TInternalComputationValueType );
 
   /**
   * Get/Set the cut off percentile cut off value.
