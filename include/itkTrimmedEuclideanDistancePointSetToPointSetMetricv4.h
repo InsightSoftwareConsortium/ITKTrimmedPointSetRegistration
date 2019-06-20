@@ -15,29 +15,29 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#ifndef itkTrimmedPointSetToPointSetMetricv4_h
-#define itkTrimmedPointSetToPointSetMetricv4_h
+#ifndef itkTrimmedEuclideanDistancePointSetToPointSetMetricv4_h
+#define itkTrimmedEuclideanDistancePointSetToPointSetMetricv4_h
 
 #include "itkEuclideanDistancePointSetToPointSetMetricv4.h"
 
 namespace itk
 {
-/** \class TrimmedPointSetToPointSetMetricv4
+/** \class TrimmedEuclideanDistancePointSetToPointSetMetricv4
  * \brief Computes similarity between two point sets.
  *
  * \ingroup TrimmedPointSetRegistration
  */
 
-template<typename TFixedPointSet,  typename TMovingPointSet,
+template<typename TFixedPointSet,  typename TMovingPointSet = TFixedPointSet,
   class TInternalComputationValueType = double>
-class ITK_TEMPLATE_EXPORT TrimmedPointSetToPointSetMetricv4
+class ITK_TEMPLATE_EXPORT TrimmedEuclideanDistancePointSetToPointSetMetricv4
 : public EuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 {
 public:
-  ITK_DISALLOW_COPY_AND_ASSIGN(TrimmedPointSetToPointSetMetricv4);
+  ITK_DISALLOW_COPY_AND_ASSIGN(TrimmedEuclideanDistancePointSetToPointSetMetricv4);
 
   /** Standard class type aliases. */
-  using Self = TrimmedPointSetToPointSetMetricv4;
+  using Self = TrimmedEuclideanDistancePointSetToPointSetMetricv4;
   using Superclass = EuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>;
   using SuperclassPointer = typename Superclass::Pointer;
   using Pointer = SmartPointer<Self>;
@@ -47,7 +47,7 @@ public:
   itkNewMacro( Self );
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro( TrimmedPointSetToPointSetMetricv4, PointSetToPointSetMetricv4 );
+  itkTypeMacro( TrimmedEuclideanDistancePointSetToPointSetMetricv4, EuclideanDistancePointSetToPointSetMetricv4 );
 
   /**  Type of the measure. */
   using MeasureType = typename Superclass::MeasureType;
@@ -147,67 +147,6 @@ public:
   using VirtualPointSetPointer = typename VirtualPointSetType::Pointer;
   using VirtualPointSetConstPointer = typename VirtualPointSetType::ConstPointer;
 
-  /** Set fixed point set*/
-  void SetFixedObject( const ObjectType *object ) override
-    {
-    Superclass::SetFixedObject(object);
-    m_Metric->SetFixedObject(object);
-    }
-
-  /** Set moving point set*/
-  void SetMovingObject( const ObjectType *object ) override
-    {
-    Superclass::SetMovingObject(object);
-    m_Metric->SetMovingObject(object);
-    }
-
-  /** Get/Set the fixed pointset.  */
-  void SetFixedPointSet(const FixedPointSetType *set) override
-    {
-    Superclass::SetFixedPointSet(set);
-    m_Metric->SetFixedPointSet(set);
-    }
-
-  const FixedPointSetType * GetFixedPointSet() const override
-    {
-    return m_Metric->GetFixedPointSet();
-    }
-
-
-  /** Get the fixed transformed point set.  */
-  FixedTransformedPointSetType * GetFixedTransformedPointSet() override
-    {
-    return m_Metric->GetFixedTransformedPointSet();
-    }
-
-  /** Get/Set the moving point set.  */
-  void SetMovingPointSet(const MovingPointSetType *set) override
-    {
-    Superclass::SetMovingPointSet(set);
-    m_Metric->SetMovingPointSet(set);
-    }
-
-  const MovingPointSetType * GetMovingPointSet() const override
-    {
-    return m_Metric->GetMovingPointSet();
-    }
-
-
-  /** Get the moving transformed point set.  */
-  MovingTransformedPointSetType * GetMovingTransformedPointSet() override
-    {
-    return m_Metric->GetFixedTransformedPointSet();
-    }
-
-  /**
-   * For now return the number of points used in the value/derivative calculations.
-   */
-  SizeValueType GetNumberOfComponents() const
-    {
-    return m_Metric->GetNumberOfComponents();
-    }
-
-
   /**
    * This method returns the value of the metric based on the current
    * transformation(s).  This function can be redefined in derived classes
@@ -244,138 +183,6 @@ public:
    */
   void GetValueAndDerivative( MeasureType &, DerivativeType & ) const override;
 
-  /**
-   * Function to be defined in the appropriate derived classes.  Calculates
-   * the local metric value for a single point.  The \c PixelType may or
-   * may not be used.  See class description for further explanation.
-   */
-  MeasureType GetLocalNeighborhoodValue( const PointType & p, const PixelType & pixel ) const override
-    {
-    return m_Metric->GetLocalNeighborhoodValue(p, pixel);
-    }
-
-  /**
-   * Calculates the local derivative for a single point. The \c PixelType may or
-   * may not be used.  See class description for further explanation.
-   */
-  LocalDerivativeType GetLocalNeighborhoodDerivative( const PointType &p, const PixelType & pixel ) const override
-    {
-    return m_Metric->GetLocalNeighborhoodDerivative(p, pixel);
-    }
-
-  /**
-   * Calculates the local value/derivative for a single point.  The \c PixelType may or
-   * may not be used.  See class description for further explanation.
-   */
-  void GetLocalNeighborhoodValueAndDerivative( const PointType &p,
-    MeasureType &m, LocalDerivativeType &l, const PixelType & pixel ) const override
-    {
-    m_Metric->GetLocalNeighborhoodValueAndDerivative(p, m, l, pixel);
-    }
-
-  /**
-   * Get the virtual point set, derived from the fixed point set.
-   * If the virtual point set has not yet been derived, it will be
-   * in this call. */
-  const VirtualPointSetType * GetVirtualTransformedPointSet() const
-    {
-    return m_Metric->GetVirtualTransformedPointSet();
-    }
-
-  /**
-   * Initialize the metric by making sure that all the components
-   *  are present and plugged together correctly.
-   */
-  void Initialize() override;
-
-  bool SupportsArbitraryVirtualDomainSamples() const override
-    {
-    return m_Metric->SupportsArbitraryVirtualDomainSamples();
-    }
-
-  /**
-   * By default, the point set metric derivative for a displacement field transform
-   * is stored by saving the gradient for every voxel in the displacement field (see
-   * the function StorePointDerivative()).  Since the "fixed points" will typically
-   * constitute a sparse set, this means that the field will have zero gradient values
-   * at every voxel that doesn't have a corresponding point.  This might cause additional
-   * computation time for certain transforms (e.g. B-spline SyN). To avoid this, this
-   * option permits storing the point derivative only at the fixed point locations.
-   * If this variable is set to false, then the derivative array will be of length
-   * = PointDimension * m_FixedPointSet->GetNumberOfPoints().
-   */
-  void SetStoreDerivativeAsSparseFieldForLocalSupportTransforms(bool sparse) override
-    {
-    Superclass::SetStoreDerivativeAsSparseFieldForLocalSupportTransforms(sparse);
-    m_Metric->SetStoreDerivativeAsSparseFieldForLocalSupportTransforms(sparse);
-    }
-  bool GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() const override
-    {
-    return m_Metric->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms();
-    }
-  void StoreDerivativeAsSparseFieldForLocalSupportTransformsOn() override
-    {
-    Superclass::StoreDerivativeAsSparseFieldForLocalSupportTransformsOn();
-    m_Metric->StoreDerivativeAsSparseFieldForLocalSupportTransformsOn();
-    }
-  void StoreDerivativeAsSparseFieldForLocalSupportTransformsOff() override
-    {
-    Superclass::StoreDerivativeAsSparseFieldForLocalSupportTransformsOff();
-    m_Metric->StoreDerivativeAsSparseFieldForLocalSupportTransformsOff();
-    }
-
-  /**
-   *
-   */
-  void SetCalculateValueAndDerivativeInTangentSpace(bool sparse) override
-    {
-    Superclass::SetCalculateValueAndDerivativeInTangentSpace(sparse);
-    m_Metric->SetCalculateValueAndDerivativeInTangentSpace(sparse);
-    }
-  bool GetCalculateValueAndDerivativeInTangentSpace() const override
-    {
-    return m_Metric->GetCalculateValueAndDerivativeInTangentSpace();
-    }
-  void CalculateValueAndDerivativeInTangentSpaceOn() override
-    {
-    Superclass::CalculateValueAndDerivativeInTangentSpaceOn();
-    m_Metric->CalculateValueAndDerivativeInTangentSpaceOn();
-    }
-  void CalculateValueAndDerivativeInTangentSpaceOff() override
-    {
-    Superclass::CalculateValueAndDerivativeInTangentSpaceOff();
-    m_Metric->CalculateValueAndDerivativeInTangentSpaceOff();
-    }
-
-  /*
-  void SetMetric(Superclass::Pointer metric)
-    {
-      m_Metric = metric;
-      this->SetFixedPointSet( metric->GetFixedPointSet() );
-      this->SetFixedTransform( metric->GetFixedTransform() );
-      this->SetMovingPointSet( metric->GetMovingPointSet() );
-      this->SetMovingTransform( metric->GetMovingTransform() );
-      this->SetStoreDerivativeAsSparseFieldForLocalSupportTransforms(
-                      metric->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() );
-      this->SetCalculateValueAndDerivativeInTangentSpace(
-                      metric->GetCalculateValueAndDerivativeInTangentSpace() );
-    }
-  */
-  itkSetObjectMacro(Metric, Superclass);
-  itkGetConstObjectMacro(Metric, Superclass)
-
-
-  void SetFixedTransform( FixedTransformType *fixed) override
-    {
-    Superclass::SetFixedTransform(fixed);
-    m_Metric->SetFixedTransform(fixed);
-    }
-
-  void SetMovingTransform(MovingTransformType *moving) override
-    {
-    Superclass::SetMovingTransform(moving);
-    m_Metric->SetMovingTransform(moving);
-    }
 
   /**
    * Get/Set distance cutoff
@@ -400,38 +207,16 @@ public:
 
 
 protected:
-  TrimmedPointSetToPointSetMetricv4();
-  ~TrimmedPointSetToPointSetMetricv4() override = default;
+  TrimmedEuclideanDistancePointSetToPointSetMetricv4();
+  ~TrimmedEuclideanDistancePointSetToPointSetMetricv4() override = default;
   void PrintSelf( std::ostream & os, Indent indent ) const override;
-
 
   /** Helper method allows for code reuse while skipping the metric value
    * calculation when appropriate */
-  void CalculateValueAndDerivative( MeasureType & value, DerivativeType & derivative, bool calculateValue ) const;
-
-  /**
-   * Prepare point sets for use. */
-  void InitializePointSets() const override
-    {
-    Superclass::InitializePointSets();
-    //m_Metric->InitializePointSets();
-    }
-
-  /**
-   * Initialize to prepare for a particular iteration, generally
-   * an iteration of optimization. Distinct from Initialize()
-   * which is a one-time initialization. */
-  void InitializeForIteration() const override
-    {
-    Superclass::InitializeForIteration();
-    //m_Metric->InitializeForIteration();
-    }
+  void MyCalculateValueAndDerivative( MeasureType & value, DerivativeType & derivative, bool calculateValue ) const;
 
 
 private:
-  //Decorated metric to be used
-  SuperclassPointer m_Metric;
-
   /**
   * Cut off value to filter the number of points used to drive the registration
   * at each iteration. Points from the fixed point set whose error measurement
@@ -450,7 +235,7 @@ private:
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#include "itkTrimmedPointSetToPointSetMetricv4.hxx"
+#include "itkTrimmedEuclideanDistancePointSetToPointSetMetricv4.hxx"
 #endif
 
 #endif

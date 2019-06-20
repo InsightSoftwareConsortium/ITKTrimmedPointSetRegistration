@@ -16,7 +16,6 @@
  *
  *=========================================================================*/
 
-#include "itkJensenHavrdaCharvatTsallisPointSetToPointSetMetricv4.h"
 #include "itkGradientDescentOptimizerv4.h"
 #include "itkRegistrationParameterScalesFromPhysicalShift.h"
 #include "itkCommand.h"
@@ -24,8 +23,13 @@
 #include "itkImageRegistrationMethodv4.h"
 #include "itkAffineTransform.h"
 #include "itkTrimmedPointSetToPointSetMetricv4.h"
+#include "itkJensenHavrdaCharvatTsallisPointSetToPointSetMetricv4.h"
+#include "itkEuclideanDistancePointSetToPointSetMetricv4.h"
+#include "itkTrimmedEuclideanDistancePointSetToPointSetMetricv4.h"
 
 #include <fstream>
+#include <iostream>
+
 
 template<typename TFilter>
 class itkTrimmedPointSetMetricRegistrationTestCommandIterationUpdate : public itk::Command
@@ -68,7 +72,7 @@ int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
 {
   constexpr unsigned int Dimension = 2;
 
-  unsigned int numberOfIterations = 10;
+  unsigned int numberOfIterations = 100;
   if( argc > 1 )
     {
     numberOfIterations = std::stoi( argv[1] );
@@ -87,7 +91,7 @@ int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
 
   using GeneratorType = itk::Statistics::MersenneTwisterRandomVariateGenerator;
   GeneratorType::Pointer generator = GeneratorType::New();
-  generator->Initialize();
+  generator->Initialize(2019);
 
   // Generate two noisy ellipses
   unsigned int nSourcePoints= 1000;
@@ -107,14 +111,12 @@ int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
     {
     float radius = 100.0;
 
-    float theta = generator->GetUniformVariate(0, 2*itk::Math::pi);
+    float theta = generator->GetUniformVariate(0, 1*itk::Math::pi);
     PointType movingPoint;
-    movingPoint[0] = 2.5 * radius * std::cos( theta ) + generator->GetNormalVariate();
-    movingPoint[1] = 0.5 * radius * std::sin( theta ) + generator->GetNormalVariate();
+    movingPoint[0] = 0.75 * radius * std::cos( theta ) + generator->GetNormalVariate();
+    movingPoint[1] = 1.5 * radius * std::sin( theta ) + generator->GetNormalVariate();
     movingPoints->SetPoint( i, movingPoint );
     }
-
-
 
   using PixelType = double;
   using FixedImageType = itk::Image<PixelType, Dimension>;
@@ -125,8 +127,8 @@ int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
   FixedImageType::DirectionType fixedImageDirection;
   FixedImageType::SpacingType fixedImageSpacing;
 
-  fixedImageSize.Fill( 221 );
-  fixedImageOrigin.Fill( -110 );
+  fixedImageSize.Fill( 600 );
+  fixedImageOrigin.Fill( -300 );
   fixedImageDirection.SetIdentity();
   fixedImageSpacing.Fill( 1 );
 
@@ -141,33 +143,23 @@ int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
   AffineTransformType::Pointer transform = AffineTransformType::New();
   transform->SetIdentity();
 
-  // Instantiate the metric
-  using PointSetMetricType = itk::JensenHavrdaCharvatTsallisPointSetToPointSetMetricv4<PointSetType>;
+  using PointSetMetricType = itk::TrimmedEuclideanDistancePointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
+  metric->SetPercentile(50);
+  metric->SetMovingTransform( transform );
   metric->SetFixedPointSet( fixedPoints );
   metric->SetMovingPointSet( movingPoints );
-  metric->SetPointSetSigma( 1.0 );
-  metric->SetKernelSigma( 10.0 );
-  metric->SetUseAnisotropicCovariances( false );
-  metric->SetCovarianceKNeighborhood( 5 );
-  metric->SetEvaluationKNeighborhood( 10 );
-  metric->SetMovingTransform( transform );
-  metric->SetAlpha( 1.1 );
   metric->SetVirtualDomainFromImage( fixedImage );
   metric->Initialize();
 
-
-  using TrimmedPointSetMetricType = itk::TrimmedPointSetToPointSetMetricv4<PointSetType, PointSetType>;
-  TrimmedPointSetMetricType::Pointer trimmedMetric = TrimmedPointSetMetricType::New();
-  trimmedMetric->SetMetric(metric);
-  
-
   // scales estimator
-  using RegistrationParameterScalesFromShiftType = itk::RegistrationParameterScalesFromPhysicalShift< TrimmedPointSetMetricType >;
-  RegistrationParameterScalesFromShiftType::Pointer shiftScaleEstimator = RegistrationParameterScalesFromShiftType::New();
-  shiftScaleEstimator->SetMetric( trimmedMetric );
+  using RegistrationParameterScalesFromShiftType =
+          itk::RegistrationParameterScalesFromPhysicalShift< PointSetMetricType >;
+  RegistrationParameterScalesFromShiftType::Pointer shiftScaleEstimator =
+          RegistrationParameterScalesFromShiftType::New();
+  shiftScaleEstimator->SetMetric( metric );
   // needed with pointset metrics
-  shiftScaleEstimator->SetVirtualDomainPointSet( trimmedMetric->GetVirtualTransformedPointSet() );
+  shiftScaleEstimator->SetVirtualDomainPointSet( metric->GetVirtualTransformedPointSet() );
 
   // optimizer
   using OptimizerType = itk::GradientDescentOptimizerv4;
@@ -175,25 +167,27 @@ int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
   optimizer->SetMetric( metric );
   optimizer->SetNumberOfIterations( numberOfIterations );
   optimizer->SetScalesEstimator( shiftScaleEstimator );
-  optimizer->SetMaximumStepSizeInPhysicalUnits( 3.0 );
+  optimizer->SetMaximumStepSizeInPhysicalUnits( 3 );
+
   using CommandType = itkTrimmedPointSetMetricRegistrationTestCommandIterationUpdate<OptimizerType>;
   CommandType::Pointer observer = CommandType::New();
   optimizer->AddObserver( itk::IterationEvent(), observer );
   optimizer->SetMinimumConvergenceValue( 0.0 );
   optimizer->SetConvergenceWindowSize( 10 );
 
-  using AffineRegistrationType = itk::ImageRegistrationMethodv4<FixedImageType, MovingImageType>;
+  using AffineRegistrationType = itk::ImageRegistrationMethodv4<FixedImageType, MovingImageType, AffineTransformType, FixedImageType, PointSetType>;
   AffineRegistrationType::Pointer affineSimple = AffineRegistrationType::New();
+  affineSimple->SetNumberOfLevels(1);
   affineSimple->SetObjectName( "affineSimple" );
   affineSimple->SetFixedPointSet( fixedPoints );
   affineSimple->SetMovingPointSet( movingPoints );
   affineSimple->SetInitialTransform( transform );
-  affineSimple->SetMetric( trimmedMetric );
+  affineSimple->SetMetric( metric );
   affineSimple->SetOptimizer( optimizer );
 
    try
     {
-    std::cout << "Point set affine registration update" << std::endl;
+    std::cout << "Trimmed point set affine registration update" << std::endl;
     affineSimple->Update();
     }
   catch( itk::ExceptionObject &e )
@@ -202,32 +196,10 @@ int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
     return EXIT_FAILURE;
     }
 
-  // applying the resultant transform to moving points and verify result
-  std::cout << "Fixed\tMoving\tMovingTransformed\tFixedTransformed\tDiff" << std::endl;
-  bool passed = true;
-  PointType::ValueType tolerance = 1e-2;
-  AffineTransformType::InverseTransformBasePointer affineInverseTransform = affineSimple->GetModifiableTransform()->GetInverseTransform();
-  for( unsigned int n=0; n < movingPoints->GetNumberOfPoints(); n++ )
-    {
-    // compare the points in virtual domain
-    PointType transformedMovingPoint = affineInverseTransform->TransformPoint( movingPoints->GetPoint( n ) );
-    PointType fixedPoint = fixedPoints->GetPoint( n );
-    PointType transformedFixedPoint = affineSimple->GetModifiableTransform()->TransformPoint( fixedPoints->GetPoint( n ) );
-    PointType difference;
-    difference[0] = transformedMovingPoint[0] - fixedPoint[0];
-    difference[1] = transformedMovingPoint[1] - fixedPoint[1];
-    std::cout << fixedPoints->GetPoint( n ) << "\t" << movingPoints->GetPoint( n )
-          << "\t" << transformedMovingPoint << "\t" << transformedFixedPoint << "\t" << difference << std::endl;
-    if( fabs( difference[0] ) > tolerance || fabs( difference[1] ) > tolerance )
-      {
-      passed = false;
-      }
-    }
-  if( ! passed )
-    {
-    std::cerr << "Results do not match truth within tolerance." << std::endl;
-    //return EXIT_FAILURE;
-    }
-
-  return EXIT_SUCCESS;
+  if(metric->GetValue() < 2){
+    return EXIT_SUCCESS;
+  }
+  else{
+    return EXIT_FAILURE;
+  }
 }

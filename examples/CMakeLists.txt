@@ -1,0 +1,3 @@
+add_executable(TrimmedPointSetRegistrationExample TrimmedPointSetRegistrationExample.cxx)
+
+target_link_libraries(TrimmedPointSetRegistrationExample ${ITK_LIBRARIES})

@@ -41,6 +41,7 @@ void
 TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 ::Initialize()
 {
+  Superclass::Initialize();
   if ( !this->m_Metric )
     {
     itkExceptionMacro( "Decorated Metric is not present" );
@@ -54,11 +55,12 @@ typename TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInt
 TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 ::GetValue() const
 {
-  m_Metric->InitializeForIteration();
+  this->InitializeForIteration();
 
-  FixedPointSetPointer fixedPointSet = m_Metric->GetFixedPointSet();
-  FixedTransformedPointSetPointer fixedTransformedPointSet = m_Metric->GetFixedTransformedPointSet();
-  VirtualPointSetPointer virtualTransformedPointSet = m_Metric->GetVirtualTransformedPointSet();
+  FixedPointSetConstPointer fixedPointSet = this->GetFixedPointSet();
+  FixedTransformedPointSetConstPointer fixedTransformedPointSet =
+          const_cast<Self*>(this)->GetFixedTransformedPointSet();
+  VirtualPointSetConstPointer virtualTransformedPointSet = this->GetVirtualTransformedPointSet();
 
   PointsConstIterator It = fixedTransformedPointSet->GetPoints()->Begin();
 
@@ -77,7 +79,7 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
     /* Verify the virtual point is in the virtual domain.
      * If user hasn't defined a virtual space, and the active transform is not
      * a displacement field transform type, then this will always return true. */
-    if( ! m_Metric->IsInsideVirtualDomain( virtualIt.Value() ) )
+    if( ! this->IsInsideVirtualDomain( virtualIt.Value() ) )
       {
       ++It;
       ++virtualIt;
@@ -86,7 +88,8 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
 
     PixelType pixel;
     NumericTraits<PixelType>::SetLength( pixel, 1 );
-    if( m_Metric->m_UsePointSetData )
+    //TODO m_UsePointSetData is protected
+    if( this->m_UsePointSetData )
       {
       bool doesPointDataExist = fixedPointSet->GetPointData( It.Index(), &pixel );
       if( ! doesPointDataExist )
@@ -94,7 +97,8 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
         itkExceptionMacro( "The corresponding data for point " << It.Value() << " (pointId = " << It.Index() << ") does not exist." );
         }
       }
-    distances[index] = m_Metric->GetLocalNeighborhoodValue( It.Value(), pixel );
+
+    distances[index] = this->GetLocalNeighborhoodValue( It.Value(), pixel );
     ++virtualIt;
     ++It;
     ++index;
@@ -105,11 +109,11 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
   MeasureType valueSum = 0.0;
   if( this->VerifyNumberOfValidPoints( valueSum, derivative ) )
     {
-    size_t last_index = m_Metric->GetNumberOfValidPoints();
+    size_t last_index = this->GetNumberOfValidPoints();
     if( m_Percentile < 100)
       {
       std::sort(distances.begin(), distances.end());
-      last_index = this->m_NumberOfValidPoints * m_Percentile / 100;
+      last_index = this->GetNumberOfValidPoints() * m_Percentile / 100;
       }
     if( last_index < 1 )
       {
@@ -159,14 +163,16 @@ void
 TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 ::CalculateValueAndDerivative( MeasureType & calculatedValue, DerivativeType & derivative, bool calculateValue ) const
 {
-  m_Metric->InitializeForIteration();
 
-  FixedPointSetPointer fixedPointSet = m_Metric->GetFixedPointSet();
-  FixedTransformedPointSetPointer fixedTransformedPointSet = m_Metric->GetFixedTransformedPointSet();
-  VirtualPointSetPointer virtualTransformedPointSet = m_Metric->GetVirtualTransformedPointSet();
+  this->InitializeForIteration();
+
+  FixedPointSetConstPointer fixedPointSet = this->GetFixedPointSet();
+  FixedTransformedPointSetConstPointer fixedTransformedPointSet =
+          const_cast<Self*>(this)->GetFixedTransformedPointSet();
+  VirtualPointSetConstPointer virtualTransformedPointSet = this->GetVirtualTransformedPointSet();
 
 
-  derivative.SetSize( m_Metric->GetNumberOfParameters() );
+  derivative.SetSize( this->GetNumberOfParameters() );
   if( ! this->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() )
     {
     derivative.SetSize( PointDimension * fixedTransformedPointSet->GetNumberOfPoints() );
@@ -174,7 +180,7 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
   derivative.Fill( NumericTraits<DerivativeValueType>::ZeroValue() );
 
   CompensatedSummation<MeasureType> value;
-  MovingTransformJacobianType  jacobian( MovingPointDimension, m_Metric->GetNumberOfLocalParameters() );
+  MovingTransformJacobianType  jacobian( MovingPointDimension, this->GetNumberOfLocalParameters() );
   MovingTransformJacobianType  jacobianCache;
 
   // Virtual point set will be the same size as fixed point set as long as it's
@@ -192,7 +198,7 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
   size_t index = 0;
   while( It != end )
     {
-    DerivativeType localTransformDerivative( m_Metric->GetNumberOfLocalParameters() );
+    DerivativeType localTransformDerivative( this->GetNumberOfLocalParameters() );
     localTransformDerivative.Fill( NumericTraits<DerivativeValueType>::ZeroValue() );
     MeasureType pointValue = NumericTraits<MeasureType>::ZeroValue();
     LocalDerivativeType pointDerivative;
@@ -200,7 +206,7 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
     /* Verify the virtual point is in the virtual domain.
      * If user hasn't defined a virtual space, and the active transform is not
      * a displacement field transform type, then this will always return true. */
-    if( ! m_Metric->IsInsideVirtualDomain( virtualIt.Value() ) )
+    if( ! this->IsInsideVirtualDomain( virtualIt.Value() ) )
       {
       ++It;
       ++virtualIt;
@@ -210,7 +216,8 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
 
     PixelType pixel;
     NumericTraits<PixelType>::SetLength( pixel, 1 );
-    if( m_Metric->m_UsePointSetData )
+    //TODO m_UsePointSetData is protected
+    if( this->m_UsePointSetData )
       {
       bool doesPointDataExist = fixedPointSet->GetPointData( It.Index(), &pixel );
       if( ! doesPointDataExist )
@@ -218,18 +225,17 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
         itkExceptionMacro( "The corresponding data for point " << It.Value() << " (pointId = " << It.Index() << ") does not exist." );
         }
       }
-
     if( calculateValue )
       {
-      m_Metric->GetLocalNeighborhoodValueAndDerivative( It.Value(), pointValue, pointDerivative, pixel );
+      this->GetLocalNeighborhoodValueAndDerivative( It.Value(), pointValue, pointDerivative, pixel );
       values[index].first = pointValue;
       }
     else
       {
-      pointDerivative = m_Metric->GetLocalNeighborhoodDerivative( It.Value(), pixel );
+      pointDerivative = this->GetLocalNeighborhoodDerivative( It.Value(), pixel );
       }
 
-    if( m_Metric->GetCalculateValueAndDerivativeInTangentSpace() )
+    if( this->GetCalculateValueAndDerivativeInTangentSpace() )
       {
       jacobian.Fill( 0.0 );
       for( DimensionType d = 0; d < MovingPointDimension; d++ )
@@ -239,13 +245,13 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
       }
     else
       {
-      m_Metric->GetMovingTransform()->
+      this->GetMovingTransform()->
         ComputeJacobianWithRespectToParametersCachedTemporaries( virtualIt.Value(),
                                                                  jacobian,
                                                                  jacobianCache );
       }
 
-    for( NumberOfParametersType par = 0; par < m_Metric->GetNumberOfLocalParameters(); par++ )
+    for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
       {
       for( DimensionType d = 0; d < PointDimension; ++d )
         {
@@ -254,17 +260,17 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
       }
 
     // For local-support transforms, store the per-point result
-    if( m_Metric->HasLocalSupport() || m_Metric->m_CalculateValueAndDerivativeInTangentSpace )
+    if( this->HasLocalSupport() || this->GetCalculateValueAndDerivativeInTangentSpace() )
       {
-      if( m_Metric->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() )
+      if( this->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() )
         {
-        m_Metric->StorePointDerivative( virtualIt.Value(), localTransformDerivative, derivative );
+        this->StorePointDerivative( virtualIt.Value(), localTransformDerivative, derivative );
         }
       else
         {
-        for( NumberOfParametersType par = 0; par < m_Metric->GetNumberOfLocalParameters(); par++ )
+        for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
           {
-          derivative[m_Metric->GetNumberOfLocalParameters() * It.Index() + par] = localTransformDerivative[par];
+          derivative[this->GetNumberOfLocalParameters() * It.Index() + par] = localTransformDerivative[par];
           }
         }
       }
@@ -283,13 +289,13 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
   MeasureType valueSum = 0.0;
   if( this->VerifyNumberOfValidPoints( valueSum, derivative ) )
     {
-    size_t last_index = m_Metric->GetNumberOfValidPoints();
+    size_t last_index = this->GetNumberOfValidPoints();
     if( m_Percentile < 100)
       {
       std::sort( values.begin(), values.end(), [](ValueType a, ValueType b)
         { return a.first < b.first ? true : false; });
 
-      last_index = m_Metric->GetNumberOfValidPoints() * m_Percentile / 100;
+      last_index = this->GetNumberOfValidPoints() * m_Percentile / 100;
       }
     if( last_index < 1 )
       {
@@ -305,9 +311,9 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
         {
         valueSum += el.first;
         ++nDistances;
-        if( ! m_Metric->HasLocalSupport() && ! m_Metric->GetCalculateValueAndDerivativeInTangentSpace() )
+        if( ! this->HasLocalSupport() && ! this->GetCalculateValueAndDerivativeInTangentSpace() )
           {
-          for( NumberOfParametersType par = 0; par < m_Metric->GetNumberOfLocalParameters(); par++ )
+          for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
             {
             derivative[par] += el.second[par];
             }
@@ -324,10 +330,9 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
     }
 
   calculatedValue = valueSum;
-  m_Metric->m_Value = valueSum;
+  this->m_Value = valueSum;
   std::cout<<"Get value and derivative"<<std::endl;
 }
-
 
 
 /** PrintSelf */
@@ -338,7 +343,7 @@ TrimmedPointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComp
 {
   Superclass::PrintSelf( os, indent );
   os << indent << "Trimmed Metric: " << this->m_Metric.GetPointer() << std::endl;
-  m_Metric->PrintSelf();
+  m_Metric->Print(os, indent);
 }
 } // end namespace itk
 
