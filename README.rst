@@ -30,6 +30,12 @@ A Simple Example
 
 Comaring Jensenm Euclidean and trimmed Euclinean metric on 2d toy example
 
+Green - Input target point set
+
+Black - Input source point set
+
+Red -  Transformed source point set
+
 .. image:: Documentation/Figures/jensen.png
 .. image:: Documentation/Figures/euclidean.png
 .. image:: Documentation/Figures/trimmed-euclidean.png
