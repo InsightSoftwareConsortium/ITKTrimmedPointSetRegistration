@@ -91,6 +91,7 @@ public:
   using FixedPointSetPointer = typename TFixedPointSet::Pointer;
   using FixedPointSetConstPointer = typename TFixedPointSet::ConstPointer;
   using FixedPointType = typename TFixedPointSet::PointType;
+  using FixedPointIdentifier = typename TFixedPointSet::PointIdentifier;
   using FixedPixelType = typename TFixedPointSet::PixelType;
   using FixedPointsContainer = typename TFixedPointSet::PointsContainer;
 
