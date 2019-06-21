@@ -216,7 +216,7 @@ int main( int argc, char *argv[] )
   using PointSetMetricType = itk::JensenHavrdaCharvatTsallisPointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
   metric->SetPointSetSigma( 1.0 );
-  metric->SetKernelSigma( 10.0 );
+  metric->SetKernelSigma( 5.0 );
   metric->SetUseAnisotropicCovariances( false );
   metric->SetCovarianceKNeighborhood( 5 );
   metric->SetEvaluationKNeighborhood( 10 );
