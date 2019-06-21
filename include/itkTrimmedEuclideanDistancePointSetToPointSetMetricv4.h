@@ -188,6 +188,7 @@ public:
    * Get/Set distance cutoff
    */
   itkGetMacro( DistanceCutoff, TInternalComputationValueType );
+  itkSetMacro( DistanceCutoff, TInternalComputationValueType );
 
   /**
   * Get/Set the cut off percentile cut off value.

@@ -244,7 +244,8 @@ int main( int argc, char *argv[] )
   {
   using PointSetMetricType = itk::TrimmedEuclideanDistancePointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
-  metric->SetPercentile(50);
+  //metric->SetPercentile(50);
+  metric->SetDistanceCutoff(20);
   metric->SetMovingTransform( transform );
   metric->SetFixedPointSet( fixedPoints );
   metric->SetMovingPointSet( movingPoints );

@@ -68,7 +68,7 @@ public:
     }
 };
 
-int itkTrimmedPointSetRegistrationTest( int argc, char *argv[] )
+int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] )
 {
   constexpr unsigned int Dimension = 2;
 

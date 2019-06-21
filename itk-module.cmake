@@ -17,6 +17,8 @@ itk_module(TrimmedPointSetRegistration
     ITKStatistics
     ITKMetricsv4
     ITKRegistrationMethodsv4
+    ITKOptimizersv4
+    ITKOptimizers
   COMPILE_DEPENDS
     ITKImageSources
   TEST_DEPENDS

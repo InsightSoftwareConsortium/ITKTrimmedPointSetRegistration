@@ -1,11 +1,11 @@
 itk_module_test()
 
 set(TrimmedPointSetRegistrationTests
-        itkTrimmedPointSetRegistrationTest.cxx
+        itkTrimmedEuclideanDistancePointSetRegistrationTest.cxx
    )
 
 CreateTestDriver(TrimmedPointSetRegistration "${TrimmedPointSetRegistration-Test_LIBRARIES}" "${TrimmedPointSetRegistrationTests}")
 
-itk_add_test(NAME itkPointSetRegistrationTest
-        COMMAND TrimmedPointSetRegistrationTestDriver itkTrimmedPointSetRegistrationTest
+itk_add_test(NAME itkTrimmedEuclideanDistancePointSetRegistrationTest
+        COMMAND TrimmedPointSetRegistrationTestDriver itkTrimmedEuclideanDistancePointSetRegistrationTest
   )
