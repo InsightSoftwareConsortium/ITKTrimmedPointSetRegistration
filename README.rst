@@ -16,19 +16,18 @@ ITKTrimmedPointSetRegistration
 Overview
 --------
 
-This is a module tfor trimmed point set registration
+This is a module for trimmed point set registration.
 
-This module implmenets a trimmed euclidean point set metric to only use a subset of the data points for registration.
+This module implmenets a trimmed euclidean point set metric that implements a an adpative trimming of the point set used during the optimization in the registration process.
 
 
-A decorator to the PointSetMetric that overrides the accumulation of the value and derivative computation to use a trimmed 
-number of points is in the module as well but is as of yet not functional.
+A decorator to the PointSetToPointSetMetricv4 that overrides the accumulation of the value and derivative computation to use a trimmed number of points is in the module as well, but is as of yet not functional. The issue is access to protected members in the base class that I think would need to be fixed in the base class.
 
 
 A Simple Example
 ----------------
 
-Comaring Jensenm Euclidean and trimmed Euclinean metric on 2d toy example
+Comparing Jensen, Euclidean and trimmed Euclinean metric on 2d toy example
 
 Green - Input target point set
 
