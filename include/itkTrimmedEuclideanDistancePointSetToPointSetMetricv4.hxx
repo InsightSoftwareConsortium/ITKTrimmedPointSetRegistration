@@ -22,6 +22,8 @@
 #include "itkIdentityTransform.h"
 #include "itkCompensatedSummation.h"
 
+#include "itkTimeProbe.h"
+
 namespace itk
 {
 
@@ -40,6 +42,9 @@ typename TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMov
 TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 ::GetValue() const
 {
+  using FixedTransformedVectorContainer = typename FixedPointsContainer::STLContainerType;
+  using VirtualVectorContainer =  typename VirtualPointsContainer::STLContainerType;
+  
   this->InitializeForIteration();
 
   // Virtual point set will be the same size as fixed point set as long as it's
@@ -52,12 +57,16 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
 
   std::vector<MeasureType> distances(numberOfFixedPoints, NumericTraits<MeasureType>::max());
 
-  std::function< void(PointsConstIterator) > collectNeighborhoodValues =
-          [&distances, this](PointsConstIterator It)
+  {
+  const VirtualVectorContainer &virtualTransformedPointSet = 
+    this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();  
+  const FixedTransformedVectorContainer &fixedTransformedPointSet = 
+    this->GetFixedTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
+  std::function< void(FixedPointIdentifier) > collectNeighborhoodValues =
+          [&distances, this, &virtualTransformedPointSet, &fixedTransformedPointSet](FixedPointIdentifier index)
     {
-    FixedPointIdentifier index = It.Index();
-    FixedPointType virtualTransformedPoint = this->GetVirtualTransformedPointSet()->GetPoint( index);
-    FixedPointType fixedTransformedPoint =  this->GetFixedTransformedPointSet()->GetPoint( index);
+    FixedPointType virtualTransformedPoint = virtualTransformedPointSet[index];
+    FixedPointType fixedTransformedPoint =  fixedTransformedPointSet[index];
     if( this->IsInsideVirtualDomain( virtualTransformedPoint ) )
       {
       PixelType pixel;
@@ -76,9 +85,10 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
       }
 
     };
-
-  std::for_each( this->GetFixedTransformedPointSet()->GetPoints()->Begin(),
-                 this->GetFixedTransformedPointSet()->GetPoints()->End(), collectNeighborhoodValues );
+  MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0, 
+                          (FixedPointIdentifier) fixedTransformedPointSet.size(), 
+                           collectNeighborhoodValues, nullptr );
+  }
 
   DerivativeType derivative;
   // `valueSum` default value is set to max in `VerifyNumberOfValidPoints`
@@ -142,10 +152,22 @@ void
 TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 ::MyCalculateValueAndDerivative( MeasureType & calculatedValue, DerivativeType & derivative, bool calculateValue ) const
 {
-  using ValueType = std::pair<MeasureType, DerivativeType>;
+  /*
+  itk::TimeProbe clock1;
+  itk::TimeProbe clock2;
+  */
+  struct PointDerivativeStorage
+    {
+    FixedPointIdentifier index;
+    DerivativeType derivative;
+    };
+  using ValueType = std::pair<MeasureType, PointDerivativeStorage>;
+  
+  using FixedTransformedVectorContainer = typename FixedPointsContainer::STLContainerType;
+  using VirtualVectorContainer =  typename VirtualPointsContainer::STLContainerType;
 
   this->InitializeForIteration();
-
+  
   derivative.SetSize( this->GetNumberOfParameters() );
   if( ! this->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() )
     {
@@ -163,148 +185,165 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     itkExceptionMacro( "Expected FixedTransformedPointSet to be the same size as VirtualTransformedPointSet." );
     }
   std::vector<ValueType> values( this->GetFixedTransformedPointSet()->GetNumberOfPoints() );
+  
+  //clock1.Start();
+  {
+  const VirtualVectorContainer &virtualTransformedPointSet = 
+    this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();  
+  const FixedTransformedVectorContainer &fixedTransformedPointSet = 
+    this->GetFixedTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
 
- // std::function< void(PointsConstIterator) > collectNeighborhoodValues =
- //         [&values, this, &calculateValue, &derivative](PointsConstIterator It)
- PointsConstIterator virtualIt = this->GetVirtualTransformedPointSet()->GetPoints()->Begin();
- PointsConstIterator It = this->GetFixedTransformedPointSet()->GetPoints()->Begin();
- PointsConstIterator end = this->GetFixedTransformedPointSet()->GetPoints()->End();
- for( ;It != end; ++It, ++virtualIt )
-   {
-
-   thread_local MovingTransformJacobianType jacobian( MovingPointDimension, this->GetNumberOfLocalParameters() );
-   thread_local MovingTransformJacobianType jacobianCache;
-   thread_local DerivativeType localTransformDerivative( this->GetNumberOfLocalParameters() );
-
-   localTransformDerivative.Fill( NumericTraits<DerivativeValueType>::ZeroValue() );
-
-   MeasureType pointValue = NumericTraits<MeasureType>::ZeroValue();
-   LocalDerivativeType pointDerivative;
-
-   FixedPointIdentifier index = It.Index();
-   const FixedPointType &virtualTransformedPoint = virtualIt.Value();
-   const FixedPointType &fixedTransformedPoint =  It.Value();
-
-   /* Verify the virtual point is in the virtual domain.
-    * If user hasn't defined a virtual space, and the active transform is not
-    * a displacement field transform type, then this will always return true. */
-   values[index].first = 0;
-   if( this->IsInsideVirtualDomain( virtualTransformedPoint ) )
-     {
-     PixelType pixel;
-     NumericTraits<PixelType>::SetLength( pixel, 1 );
-     if( this->m_UsePointSetData )
-       {
-       bool doesPointDataExist = this->GetFixedTransformedPointSet()->GetPointData( It.Index(), &pixel );
-       if( ! doesPointDataExist )
-         {
-         itkExceptionMacro( "The corresponding data for point " << It.Value() << " (pointId = " << It.Index() << ") does not exist." );
-         }
-       }
-     if( calculateValue )
-       {
-       this->GetLocalNeighborhoodValueAndDerivative( fixedTransformedPoint, pointValue, pointDerivative, pixel );
-       values[index].first = pointValue;
-       }
-     else
-       {
-       pointDerivative = this->GetLocalNeighborhoodDerivative( fixedTransformedPoint, pixel );
-       }
-
-     if( !this->GetCalculateValueAndDerivativeInTangentSpace() )
-       {
-       this->GetMovingTransform()->
-          ComputeJacobianWithRespectToParametersCachedTemporaries( virtualTransformedPoint,
-                                                                   jacobian,
-                                                                   jacobianCache );
-       for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
-         {
-         for( DimensionType d = 0; d < PointDimension; ++d )
-           {
-           localTransformDerivative[par] += jacobian(d, par) * pointDerivative[d];
-           }
-         }
-       }
-     else
-       {
-       for( DimensionType d = 0; d < PointDimension; ++d )
-         {
-         localTransformDerivative[d] += pointDerivative[d];
-         }
-       }
-      // For local-support transforms, store the per-point result
-     if( this->HasLocalSupport() || this->GetCalculateValueAndDerivativeInTangentSpace() )
-       {
-       if( this->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() )
-         {
-         this->StorePointDerivative( virtualTransformedPoint, localTransformDerivative, derivative );
-         }
-       else
-         {
-         for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
-           {
-           derivative[this->GetNumberOfLocalParameters() * It.Index() + par] = localTransformDerivative[par];
-           }
-         }
-       }
-     else
-       {
-       values[index].second = localTransformDerivative;
-       }
-     }
-   };
-
-  //std::for_each( this->GetFixedTransformedPointSet()->GetPoints()->Begin(),
-  //               this->GetFixedTransformedPointSet()->GetPoints()->End(), collectNeighborhoodValues );
-
-
+  //Collect derviatives at each point
+  std::function< void(FixedPointIdentifier) > collectNeighborhoodValues =
+       [&values, this, &calculateValue, &derivative, &virtualTransformedPointSet, &fixedTransformedPointSet]
+       (FixedPointIdentifier index)
+    {
+    /* Verify the virtual point is in the virtual domain.
+     * If user hasn't defined a virtual space, and the active transform is not
+     * a displacement field transform type, then this will always return true. */
+    values[index].first = 0;
+    values[index].second.index = index;
+    values[index].second.derivative.SetSize( this->GetNumberOfLocalParameters() );
+    values[index].second.derivative.Fill(0);
+    if( !this->IsInsideVirtualDomain( virtualTransformedPointSet[index] ) )
+      {
+      return;
+      }
+    PixelType pixel;
+    NumericTraits<PixelType>::SetLength( pixel, 1 );
+    if( this->m_UsePointSetData )
+      {
+      bool doesPointDataExist = this->GetFixedTransformedPointSet()->GetPointData( index, &pixel );
+      if( ! doesPointDataExist )
+        {
+        itkExceptionMacro( "The corresponding data for point " << index << ") does not exist." );
+        }
+      }
+    LocalDerivativeType pointDerivative;
+    if( calculateValue || m_Percentile < 100 || 
+        m_DistanceCutoff < NumericTraits<TInternalComputationValueType>::max() )
+      {
+      MeasureType pointValue = NumericTraits<MeasureType>::ZeroValue();
+      this->GetLocalNeighborhoodValueAndDerivative( 
+          fixedTransformedPointSet[index], pointValue, pointDerivative, pixel );
+      values[index].first = pointValue;
+      }
+    else
+      {
+      pointDerivative = this->GetLocalNeighborhoodDerivative( fixedTransformedPointSet[index], pixel );
+      }
+            
+    if( !this->GetCalculateValueAndDerivativeInTangentSpace() )
+      {
+      thread_local MovingTransformJacobianType jacobian( MovingPointDimension, this->GetNumberOfLocalParameters() );
+      thread_local MovingTransformJacobianType jacobianCache;
+      this->GetMovingTransform()->ComputeJacobianWithRespectToParametersCachedTemporaries(  
+          virtualTransformedPointSet[index], jacobian, jacobianCache );
+      for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
+        {
+        for( DimensionType d = 0; d < PointDimension; ++d )
+          {
+          values[index].second.derivative[par] += jacobian(d, par) * pointDerivative[d];
+          }
+        }
+      }
+    else
+      {
+      for( DimensionType d = 0; d < PointDimension; ++d )
+        {
+        values[index].second.derivative[d] = pointDerivative[d];
+        }
+      }  
+    };
+    
+  MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0, 
+                          (FixedPointIdentifier) fixedTransformedPointSet.size(), 
+                           collectNeighborhoodValues, nullptr );
+  }
+  //clock1.Stop();
+  
+  //clock2.Start();
   // `valueSum` default value is set to max in `VerifyNumberOfValidPoints`
   // if there is no valid point.
-  MeasureType valueSum = 0.0;
-  if( this->VerifyNumberOfValidPoints( valueSum, derivative ) )
+  MeasureType initialValueSum = 0;
+  calculatedValue = initialValueSum;
+  this->m_Value = initialValueSum;
+  if( this->VerifyNumberOfValidPoints( initialValueSum, derivative ) )
     {
+    MeasureType valueSum( initialValueSum );
+    //Threshold based on percentile
     size_t last_index = this->GetNumberOfValidPoints();
     if( m_Percentile < 100)
       {
       std::sort( values.begin(), values.end(), [](ValueType a, ValueType b)
         { return a.first < b.first ? true : false; });
 
-      last_index = this->GetNumberOfValidPoints() * m_Percentile / 100;
+      last_index = (this->GetNumberOfValidPoints() * this->m_Percentile) / 100;
       }
     if( last_index < 1 )
       {
       itkExceptionMacro( "Percentile too small. No valid point in selected percentile." );
       }
 
-    unsigned int nDistances = 0;
+    //Accumulate percentile thresholded derivatives
+    DerivativeType localTransformDerivative( this->GetNumberOfLocalParameters() );
+    localTransformDerivative.Fill(0);
+    const VirtualVectorContainer &virtualTransformedPointSet = 
+      this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();  
+    unsigned int nValidDistances = 0;
     for( typename std::vector<ValueType>::iterator it = values.begin();
          it < values.begin() + last_index; it++ )
       {
       ValueType &el = *it;
-      if( el.first < m_DistanceCutoff )
+      PointIdentifier pointIndex = el.second.index;
+      //Threshold based on distance
+      if( el.first < this->m_DistanceCutoff )
         {
         valueSum += el.first;
-        ++nDistances;
-        if( ! this->HasLocalSupport() && ! this->GetCalculateValueAndDerivativeInTangentSpace() )
+        ++nValidDistances;
+
+        if( this->HasLocalSupport() || this->GetCalculateValueAndDerivativeInTangentSpace() )
           {
-          for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
+          localTransformDerivative.Fill( NumericTraits<DerivativeValueType>::ZeroValue() );
+          }
+        for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
+          {
+          localTransformDerivative[par] += el.second.derivative[par];
+          }
+
+        if( this->HasLocalSupport() ||  this->GetCalculateValueAndDerivativeInTangentSpace() )
+          {
+          if( this->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() )
             {
-            derivative[par] += el.second[par];
+            this->StorePointDerivative( virtualTransformedPointSet[pointIndex], localTransformDerivative, derivative);
+            }
+          else
+            {
+            for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
+              {
+              derivative[this->GetNumberOfLocalParameters() * pointIndex + par] = localTransformDerivative[par];
+              }
             }
           }
         }
       }
-    if( nDistances < 1 )
+    if( nValidDistances < 1 )
       {
       itkExceptionMacro( "DistanceCutoff too small. No valid point in selected percentile." );
       }
 
-    valueSum /= nDistances;
-    derivative /= nDistances;
+    valueSum /= nValidDistances;
+    if( !this->HasLocalSupport() && !this->GetCalculateValueAndDerivativeInTangentSpace() )
+      {
+      derivative = localTransformDerivative / nValidDistances;
+      }
+    calculatedValue = valueSum;
+    this->m_Value = valueSum;
     }
+  //clock2.Stop();
 
-  calculatedValue = valueSum;
-  this->m_Value = valueSum;
+  //std::cout << "Collecting Derivatives Time: " << clock1.GetTotal() << std::endl;
+  //std::cout << "Accumulating Derivatives Time: " << clock2.GetTotal() << std::endl;
 }
 
 

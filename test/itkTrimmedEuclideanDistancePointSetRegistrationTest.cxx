@@ -88,6 +88,12 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
   PointSetType::Pointer movingPoints = PointSetType::New();
   movingPoints->Initialize();
 
+  itk::MultiThreaderBase::New()->SetMaximumNumberOfThreads( 8 ); 
+  itk::MultiThreaderBase::SetGlobalDefaultNumberOfThreads( 8 );
+  std::cout << "MaxNumberOfThreads: ";
+  std::cout << itk::MultiThreaderBase::New()->GetMaximumNumberOfThreads() << std::endl;
+  std::cout << "NumberOfWorkUnits: ";
+  std::cout << itk::MultiThreaderBase::New()->GetNumberOfWorkUnits() << std::endl;
 
   using GeneratorType = itk::Statistics::MersenneTwisterRandomVariateGenerator;
   GeneratorType::Pointer generator = GeneratorType::New();

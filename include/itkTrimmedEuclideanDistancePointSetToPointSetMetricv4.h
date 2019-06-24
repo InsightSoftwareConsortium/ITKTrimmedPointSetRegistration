@@ -125,6 +125,7 @@ public:
   using NeighborsIdentifierType = typename PointsLocatorType::NeighborsIdentifierType;
 
   using FixedTransformedPointSetType = PointSet<FixedPixelType, Self::PointDimension >;
+  using FixedTransformedPointsContainer = typename FixedTransformedPointSetType::PointsContainer;
   using FixedTransformedPointSetPointer = typename FixedTransformedPointSetType::Pointer;
   using FixedTransformedPointSetConstPointer = typename FixedTransformedPointSetType::ConstPointer;
   using MovingTransformedPointSetType = PointSet<MovingPixelType, Self::PointDimension >;
@@ -147,6 +148,7 @@ public:
   using VirtualPointSetType = typename Superclass::VirtualPointSetType;
   using VirtualPointSetPointer = typename VirtualPointSetType::Pointer;
   using VirtualPointSetConstPointer = typename VirtualPointSetType::ConstPointer;
+  using VirtualPointsContainer = typename VirtualPointSetType::PointsContainer;
 
   /**
    * This method returns the value of the metric based on the current
