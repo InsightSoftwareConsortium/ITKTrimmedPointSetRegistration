@@ -22,7 +22,6 @@
 #include "itkIdentityTransform.h"
 #include "itkCompensatedSummation.h"
 
-#include "itkTimeProbe.h"
 
 namespace itk
 {
@@ -34,6 +33,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
 {
   this->m_Percentile = 100;
   this->m_DistanceCutoff = NumericTraits<TInternalComputationValueType>::max();
+  clock1 = new TimeProbe();
 }
 
 
@@ -44,7 +44,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
 {
   using FixedTransformedVectorContainer = typename FixedPointsContainer::STLContainerType;
   using VirtualVectorContainer =  typename VirtualPointsContainer::STLContainerType;
-  
+
   this->InitializeForIteration();
 
   // Virtual point set will be the same size as fixed point set as long as it's
@@ -58,10 +58,11 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
   std::vector<MeasureType> distances(numberOfFixedPoints, NumericTraits<MeasureType>::max());
 
   {
-  const VirtualVectorContainer &virtualTransformedPointSet = 
-    this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();  
-  const FixedTransformedVectorContainer &fixedTransformedPointSet = 
+  const VirtualVectorContainer &virtualTransformedPointSet =
+    this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
+  const FixedTransformedVectorContainer &fixedTransformedPointSet =
     this->GetFixedTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
+
   std::function< void(FixedPointIdentifier) > collectNeighborhoodValues =
           [&distances, this, &virtualTransformedPointSet, &fixedTransformedPointSet](FixedPointIdentifier index)
     {
@@ -85,8 +86,8 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
       }
 
     };
-  MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0, 
-                          (FixedPointIdentifier) fixedTransformedPointSet.size(), 
+  MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0,
+                          (FixedPointIdentifier) fixedTransformedPointSet.size(),
                            collectNeighborhoodValues, nullptr );
   }
 
@@ -152,30 +153,27 @@ void
 TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 ::MyCalculateValueAndDerivative( MeasureType & calculatedValue, DerivativeType & derivative, bool calculateValue ) const
 {
-  /*
-  itk::TimeProbe clock1;
-  itk::TimeProbe clock2;
-  */
+
+  //itk::TimeProbe clock2;
+
   struct PointDerivativeStorage
     {
     FixedPointIdentifier index;
     DerivativeType derivative;
     };
   using ValueType = std::pair<MeasureType, PointDerivativeStorage>;
-  
+
   using FixedTransformedVectorContainer = typename FixedPointsContainer::STLContainerType;
   using VirtualVectorContainer =  typename VirtualPointsContainer::STLContainerType;
 
   this->InitializeForIteration();
-  
+
   derivative.SetSize( this->GetNumberOfParameters() );
   if( ! this->GetStoreDerivativeAsSparseFieldForLocalSupportTransforms() )
     {
     derivative.SetSize( PointDimension * this->GetFixedTransformedPointSet()->GetNumberOfPoints() );
     }
   derivative.Fill( NumericTraits<DerivativeValueType>::ZeroValue() );
-
-  CompensatedSummation<MeasureType> value;
 
   // Virtual point set will be the same size as fixed point set as long as it's
   // generated from the fixed point set.
@@ -184,23 +182,47 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     {
     itkExceptionMacro( "Expected FixedTransformedPointSet to be the same size as VirtualTransformedPointSet." );
     }
-  std::vector<ValueType> values( this->GetFixedTransformedPointSet()->GetNumberOfPoints() );
-  
-  //clock1.Start();
+  ValueType *values = new ValueType[ this->GetFixedTransformedPointSet()->GetNumberOfPoints() ];
+
+  this->clock1->Start();
   {
-  const VirtualVectorContainer &virtualTransformedPointSet = 
-    this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();  
-  const FixedTransformedVectorContainer &fixedTransformedPointSet = 
+  //Create ranges for multithreading
+  std::vector< std::pair<int, int> > ranges;
+  int nWorkUnits = MultiThreaderBase::New()->GetNumberOfWorkUnits();
+  int nPoints = this->GetVirtualTransformedPointSet()->GetNumberOfPoints();
+  int startRange = 0;
+  for(int i=0; i < nWorkUnits-1; i++)
+    {
+    int endRange = (i+1)*nPoints / (double)(nWorkUnits);
+    ranges.push_back( std::pair<int, int>(startRange, endRange) );
+    startRange = endRange;
+    }
+  ranges.push_back( std::pair<int, int>(startRange, nPoints) );
+
+
+  const VirtualVectorContainer &virtualTransformedPointSet =
+    this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
+  const FixedTransformedVectorContainer &fixedTransformedPointSet =
     this->GetFixedTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
 
   //Collect derviatives at each point
-  std::function< void(FixedPointIdentifier) > collectNeighborhoodValues =
-       [&values, this, &calculateValue, &derivative, &virtualTransformedPointSet, &fixedTransformedPointSet]
-       (FixedPointIdentifier index)
+  std::function< void(int) > collectNeighborhoodValues =
+       [ values, this, &calculateValue, &derivative, &ranges,
+         &virtualTransformedPointSet, &fixedTransformedPointSet ]
+       (int range)
     {
+    MovingTransformJacobianType jacobian( MovingPointDimension, this->GetNumberOfLocalParameters() );
+    MovingTransformJacobianType jacobianCache;
+    PixelType pixel;
+    NumericTraits<PixelType>::SetLength( pixel, 1 );
+    LocalDerivativeType pointDerivative;
+    MeasureType pointValue = NumericTraits<MeasureType>::ZeroValue();
     /* Verify the virtual point is in the virtual domain.
      * If user hasn't defined a virtual space, and the active transform is not
      * a displacement field transform type, then this will always return true. */
+    for(int index = ranges[range].first; index<ranges[range].second; index++)
+    {
+    values[index] = ValueType();
     values[index].first = 0;
     values[index].second.index = index;
     values[index].second.derivative.SetSize( this->GetNumberOfLocalParameters() );
@@ -209,8 +231,6 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
       {
       return;
       }
-    PixelType pixel;
-    NumericTraits<PixelType>::SetLength( pixel, 1 );
     if( this->m_UsePointSetData )
       {
       bool doesPointDataExist = this->GetFixedTransformedPointSet()->GetPointData( index, &pixel );
@@ -218,13 +238,12 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
         {
         itkExceptionMacro( "The corresponding data for point " << index << ") does not exist." );
         }
+
       }
-    LocalDerivativeType pointDerivative;
-    if( calculateValue || m_Percentile < 100 || 
+    if( calculateValue || m_Percentile < 100 ||
         m_DistanceCutoff < NumericTraits<TInternalComputationValueType>::max() )
       {
-      MeasureType pointValue = NumericTraits<MeasureType>::ZeroValue();
-      this->GetLocalNeighborhoodValueAndDerivative( 
+      this->GetLocalNeighborhoodValueAndDerivative(
           fixedTransformedPointSet[index], pointValue, pointDerivative, pixel );
       values[index].first = pointValue;
       }
@@ -232,12 +251,10 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
       {
       pointDerivative = this->GetLocalNeighborhoodDerivative( fixedTransformedPointSet[index], pixel );
       }
-            
+
     if( !this->GetCalculateValueAndDerivativeInTangentSpace() )
       {
-      thread_local MovingTransformJacobianType jacobian( MovingPointDimension, this->GetNumberOfLocalParameters() );
-      thread_local MovingTransformJacobianType jacobianCache;
-      this->GetMovingTransform()->ComputeJacobianWithRespectToParametersCachedTemporaries(  
+      this->GetMovingTransform()->ComputeJacobianWithRespectToParametersCachedTemporaries(
           virtualTransformedPointSet[index], jacobian, jacobianCache );
       for( NumberOfParametersType par = 0; par < this->GetNumberOfLocalParameters(); par++ )
         {
@@ -253,15 +270,18 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
         {
         values[index].second.derivative[d] = pointDerivative[d];
         }
-      }  
+      }
+    }
     };
-    
-  MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0, 
-                          (FixedPointIdentifier) fixedTransformedPointSet.size(), 
-                           collectNeighborhoodValues, nullptr );
+
+  MultiThreaderBase::New()->ParallelizeArray( 0, ranges.size(),
+                                              collectNeighborhoodValues, nullptr );
+  //MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0,
+  //                        (FixedPointIdentifier) fixedTransformedPointSet.size(),
+  //                         collectNeighborhoodValues, nullptr );
   }
-  //clock1.Stop();
-  
+  this->clock1->Stop();
+
   //clock2.Start();
   // `valueSum` default value is set to max in `VerifyNumberOfValidPoints`
   // if there is no valid point.
@@ -275,7 +295,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     size_t last_index = this->GetNumberOfValidPoints();
     if( m_Percentile < 100)
       {
-      std::sort( values.begin(), values.end(), [](ValueType a, ValueType b)
+      std::sort( values, values+last_index, [](ValueType a, ValueType b)
         { return a.first < b.first ? true : false; });
 
       last_index = (this->GetNumberOfValidPoints() * this->m_Percentile) / 100;
@@ -288,13 +308,12 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     //Accumulate percentile thresholded derivatives
     DerivativeType localTransformDerivative( this->GetNumberOfLocalParameters() );
     localTransformDerivative.Fill(0);
-    const VirtualVectorContainer &virtualTransformedPointSet = 
-      this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();  
+    const VirtualVectorContainer &virtualTransformedPointSet =
+      this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
     unsigned int nValidDistances = 0;
-    for( typename std::vector<ValueType>::iterator it = values.begin();
-         it < values.begin() + last_index; it++ )
+    for( int valueIndex=0; valueIndex < last_index; valueIndex++)
       {
-      ValueType &el = *it;
+      ValueType &el = values[valueIndex];
       PointIdentifier pointIndex = el.second.index;
       //Threshold based on distance
       if( el.first < this->m_DistanceCutoff )
@@ -342,7 +361,8 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     }
   //clock2.Stop();
 
-  //std::cout << "Collecting Derivatives Time: " << clock1.GetTotal() << std::endl;
+  delete[] values;
+  std::cout << "Collecting Derivatives Time: " << this->clock1->GetTotal() << std::endl;
   //std::cout << "Accumulating Derivatives Time: " << clock2.GetTotal() << std::endl;
 }
 

@@ -20,6 +20,8 @@
 
 #include "itkEuclideanDistancePointSetToPointSetMetricv4.h"
 
+#include "itkTimeProbe.h"
+
 namespace itk
 {
 /** \class TrimmedEuclideanDistancePointSetToPointSetMetricv4
@@ -235,6 +237,8 @@ private:
    * Can be used in conjunction with percentile filtering
    * */
   TInternalComputationValueType m_DistanceCutoff;
+
+  TimeProbe *clock1;
 };
 } // end namespace itk
 

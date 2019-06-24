@@ -20,8 +20,7 @@ This is a module for trimmed point set registration.
 
 This module implmenets a trimmed euclidean point set metric that implements a an adpative trimming of the point set used during the optimization in the registration process.
 
-
-A decorator to the PointSetToPointSetMetricv4 that overrides the accumulation of the value and derivative computation to use a trimmed number of points is in the module as well, but is as of yet not functional. The issue is access to protected members in the base class that I think would need to be fixed in the base class.
+The itkTrimmedEuclideanDistancePointSetToPointSetMetricv4 is multithreaded but curently the multithreaded version runs slower.
 
 
 A Simple Example
@@ -47,4 +46,6 @@ TODO
   - Add a real world example.
   - Investigate Jensen unexpected behaviour in simple example.
   - Currently the point set metrics are not symmetric since the iterations is only over one fo the point sets. Consider adding symmetric versions. Or document the assymetric behaviour well.
+   - A decorator to the PointSetToPointSetMetricv4 that overrides the accumulation of the value and derivative computation to use a trimmed number of points is in the module as well, but is as of yet not functional. The issue is access to protected members in the base class that I think would need to be fixed in the base class.
+
 

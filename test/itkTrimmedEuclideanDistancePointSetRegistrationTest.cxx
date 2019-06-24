@@ -88,8 +88,8 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
   PointSetType::Pointer movingPoints = PointSetType::New();
   movingPoints->Initialize();
 
-  itk::MultiThreaderBase::New()->SetMaximumNumberOfThreads( 8 ); 
-  itk::MultiThreaderBase::SetGlobalDefaultNumberOfThreads( 8 );
+  //itk::MultiThreaderBase::New()->SetMaximumNumberOfThreads( 8 );
+  //itk::MultiThreaderBase::SetGlobalDefaultNumberOfThreads( 8 );
   std::cout << "MaxNumberOfThreads: ";
   std::cout << itk::MultiThreaderBase::New()->GetMaximumNumberOfThreads() << std::endl;
   std::cout << "NumberOfWorkUnits: ";
@@ -100,7 +100,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
   generator->Initialize(2019);
 
   // Generate two noisy ellipses
-  unsigned int nSourcePoints= 1000;
+  unsigned int nSourcePoints= 5000;
   for(int i=0; i< nSourcePoints; i++ )
     {
     float radius = 100.0;
@@ -112,7 +112,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
     fixedPoints->SetPoint( i, fixedPoint );
     }
 
-  unsigned int nTargetPoints= 1200;
+  unsigned int nTargetPoints= 5200;
   for(int i=0; i< nTargetPoints; i++ )
     {
     float radius = 100.0;
