@@ -237,8 +237,6 @@ private:
    * Can be used in conjunction with percentile filtering
    * */
   TInternalComputationValueType m_DistanceCutoff;
-
-  TimeProbe *clock1;
 };
 } // end namespace itk
 

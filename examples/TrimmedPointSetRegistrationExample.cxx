@@ -91,7 +91,7 @@ void runRegistration( PointSetType::Pointer fixedPoints,
 
    try
     {
-    std::cout << "Trimmed point set affine registration update" << std::endl;
+    //std::cout << "Trimmed point set affine registration update" << std::endl;
     affineSimple->Update();
     }
   catch( itk::ExceptionObject &e )
@@ -158,6 +158,10 @@ int main( int argc, char *argv[] )
     numberOfIterations = std::stoi( argv[1] );
     }
 
+  std::cout << "MaxNumberOfThreads: ";
+  std::cout << itk::MultiThreaderBase::New()->GetMaximumNumberOfThreads() << std::endl;
+  std::cout << "NumberOfWorkUnits: ";
+  std::cout << itk::MultiThreaderBase::New()->GetNumberOfWorkUnits() << std::endl;
 
   PointSetType::Pointer fixedPoints = PointSetType::New();
   fixedPoints->Initialize();
@@ -171,7 +175,7 @@ int main( int argc, char *argv[] )
   generator->Initialize();
 
   // Generate two noisy ellipses
-  unsigned int nSourcePoints= 1000;
+  unsigned int nSourcePoints= 4000;
   for(int i=0; i< nSourcePoints; i++ )
     {
     float radius = 100.0;
@@ -183,7 +187,7 @@ int main( int argc, char *argv[] )
     fixedPoints->SetPoint( i, fixedPoint );
     }
 
-  unsigned int nTargetPoints= 1200;
+  unsigned int nTargetPoints= 4200;
   for(int i=0; i< nTargetPoints; i++ )
     {
     float radius = 100.0;
@@ -212,6 +216,7 @@ int main( int argc, char *argv[] )
   transform->SetIdentity();
 
   //Run on different metrics
+  /*
   {
   using PointSetMetricType = itk::JensenHavrdaCharvatTsallisPointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
@@ -240,7 +245,7 @@ int main( int argc, char *argv[] )
   metric->Initialize();
   runRegistration<PointSetMetricType>(fixedPoints, movingPoints, metric, fixedImage, "euclidean-points.csv");
   }
-
+*/
   {
   using PointSetMetricType = itk::TrimmedEuclideanDistancePointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();

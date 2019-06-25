@@ -33,7 +33,6 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
 {
   this->m_Percentile = 100;
   this->m_DistanceCutoff = NumericTraits<TInternalComputationValueType>::max();
-  clock1 = new TimeProbe();
 }
 
 
@@ -154,7 +153,6 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
 ::MyCalculateValueAndDerivative( MeasureType & calculatedValue, DerivativeType & derivative, bool calculateValue ) const
 {
 
-  //itk::TimeProbe clock2;
 
   struct PointDerivativeStorage
     {
@@ -182,37 +180,24 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     {
     itkExceptionMacro( "Expected FixedTransformedPointSet to be the same size as VirtualTransformedPointSet." );
     }
-  ValueType *values = new ValueType[ this->GetFixedTransformedPointSet()->GetNumberOfPoints() ];
 
-  this->clock1->Start();
+  //Collect derviatives at each point
+  std::vector<ValueType> values( this->GetFixedTransformedPointSet()->GetNumberOfPoints() );
   {
-  //Create ranges for multithreading
-  std::vector< std::pair<int, int> > ranges;
-  int nWorkUnits = MultiThreaderBase::New()->GetNumberOfWorkUnits();
-  int nPoints = this->GetVirtualTransformedPointSet()->GetNumberOfPoints();
-  int startRange = 0;
-  for(int i=0; i < nWorkUnits-1; i++)
-    {
-    int endRange = (i+1)*nPoints / (double)(nWorkUnits);
-    ranges.push_back( std::pair<int, int>(startRange, endRange) );
-    startRange = endRange;
-    }
-  ranges.push_back( std::pair<int, int>(startRange, nPoints) );
-
-
   const VirtualVectorContainer &virtualTransformedPointSet =
     this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
   const FixedTransformedVectorContainer &fixedTransformedPointSet =
     this->GetFixedTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
 
-  //Collect derviatives at each point
   std::function< void(int) > collectNeighborhoodValues =
-       [ values, this, &calculateValue, &derivative, &ranges,
+       [ &values, this, &calculateValue, &derivative,// &ranges,
          &virtualTransformedPointSet, &fixedTransformedPointSet ]
-       (int range)
+       (int index)//range)
     {
+    //The Jacobian might need to be alloacted per Thread for transforms with a large number of parmaters
     MovingTransformJacobianType jacobian( MovingPointDimension, this->GetNumberOfLocalParameters() );
     MovingTransformJacobianType jacobianCache;
+
     PixelType pixel;
     NumericTraits<PixelType>::SetLength( pixel, 1 );
     LocalDerivativeType pointDerivative;
@@ -220,13 +205,14 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     /* Verify the virtual point is in the virtual domain.
      * If user hasn't defined a virtual space, and the active transform is not
      * a displacement field transform type, then this will always return true. */
-    for(int index = ranges[range].first; index<ranges[range].second; index++)
-    {
-    values[index] = ValueType();
+    //for(int index = ranges[range].first; index<ranges[range].second; index++)
+    //{
+    //values[index] = ValueType();
     values[index].first = 0;
     values[index].second.index = index;
     values[index].second.derivative.SetSize( this->GetNumberOfLocalParameters() );
     values[index].second.derivative.Fill(0);
+
     if( !this->IsInsideVirtualDomain( virtualTransformedPointSet[index] ) )
       {
       return;
@@ -271,18 +257,15 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
         values[index].second.derivative[d] = pointDerivative[d];
         }
       }
-    }
+    //}
     };
 
-  MultiThreaderBase::New()->ParallelizeArray( 0, ranges.size(),
-                                              collectNeighborhoodValues, nullptr );
-  //MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0,
-  //                        (FixedPointIdentifier) fixedTransformedPointSet.size(),
-  //                         collectNeighborhoodValues, nullptr );
-  }
-  this->clock1->Stop();
+  MultiThreaderBase::New()->ParallelizeArray( (FixedPointIdentifier) 0,
+                          (FixedPointIdentifier) fixedTransformedPointSet.size(),
+                           collectNeighborhoodValues, nullptr );
+  }//End collection of derivatives
 
-  //clock2.Start();
+  // Threshold and sum derivaties and values
   // `valueSum` default value is set to max in `VerifyNumberOfValidPoints`
   // if there is no valid point.
   MeasureType initialValueSum = 0;
@@ -295,7 +278,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     size_t last_index = this->GetNumberOfValidPoints();
     if( m_Percentile < 100)
       {
-      std::sort( values, values+last_index, [](ValueType a, ValueType b)
+      std::sort( values.begin(), values.begin()+last_index, [](ValueType a, ValueType b)
         { return a.first < b.first ? true : false; });
 
       last_index = (this->GetNumberOfValidPoints() * this->m_Percentile) / 100;
@@ -359,11 +342,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     calculatedValue = valueSum;
     this->m_Value = valueSum;
     }
-  //clock2.Stop();
 
-  delete[] values;
-  std::cout << "Collecting Derivatives Time: " << this->clock1->GetTotal() << std::endl;
-  //std::cout << "Accumulating Derivatives Time: " << clock2.GetTotal() << std::endl;
 }
 
 
