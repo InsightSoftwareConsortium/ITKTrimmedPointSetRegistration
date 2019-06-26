@@ -26,6 +26,7 @@
 #include "itkJensenHavrdaCharvatTsallisPointSetToPointSetMetricv4.h"
 #include "itkEuclideanDistancePointSetToPointSetMetricv4.h"
 #include "itkTrimmedEuclideanDistancePointSetToPointSetMetricv4.h"
+#include "itkTimeProbe.h"
 
 #include <fstream>
 #include <iostream>
@@ -215,9 +216,14 @@ int main( int argc, char *argv[] )
   AffineTransformType::Pointer transform = AffineTransformType::New();
   transform->SetIdentity();
 
+
+  std::cout << "Running examples with " << nSourcePoints << " source points and " << nTargetPoints << " target points." << std::endl;
+  std::cout << "Using a maximum of " << itk::MultiThreaderBase::New()->GetMaximumNumberOfThreads() << " threads and ";
+  std::cout << itk::MultiThreaderBase::New()->GetNumberOfWorkUnits() << " work units." << std::endl;
   //Run on different metrics
-  /*
   {
+  itk::TimeProbe clock;
+  clock.Start();
   using PointSetMetricType = itk::JensenHavrdaCharvatTsallisPointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
   metric->SetPointSetSigma( 1.0 );
@@ -232,10 +238,14 @@ int main( int argc, char *argv[] )
   metric->SetVirtualDomainFromImage( fixedImage );
   metric->Initialize();
   runRegistration<PointSetMetricType>(fixedPoints, movingPoints, metric, fixedImage, "jensen-points.csv");
+  clock.Stop();
+  std::cout << "Jensen Metric Time : " << clock.GetTotal() << std::endl;
   }
 
 
   {
+  itk::TimeProbe clock;
+  clock.Start();
   using PointSetMetricType = itk::EuclideanDistancePointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
   metric->SetMovingTransform( transform );
@@ -244,19 +254,25 @@ int main( int argc, char *argv[] )
   metric->SetVirtualDomainFromImage( fixedImage );
   metric->Initialize();
   runRegistration<PointSetMetricType>(fixedPoints, movingPoints, metric, fixedImage, "euclidean-points.csv");
+  clock.Stop();
+  std::cout << "Euclidean Metric Time : " << clock.GetTotal() << std::endl;
   }
-*/
+
   {
+  itk::TimeProbe clock;
+  clock.Start();
   using PointSetMetricType = itk::TrimmedEuclideanDistancePointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
-  //metric->SetPercentile(50);
-  metric->SetDistanceCutoff(20);
+  metric->SetPercentile(50);
+  //metric->SetDistanceCutoff(20);
   metric->SetMovingTransform( transform );
   metric->SetFixedPointSet( fixedPoints );
   metric->SetMovingPointSet( movingPoints );
   metric->SetVirtualDomainFromImage( fixedImage );
   metric->Initialize();
   runRegistration<PointSetMetricType>(fixedPoints, movingPoints, metric, fixedImage, "trimmed-euclidean-points.csv");
+  clock.Stop();
+  std::cout << "Trimmed Euclidean Metric Time : " << clock.GetTotal() << std::endl;
   }
 
   return EXIT_SUCCESS;
