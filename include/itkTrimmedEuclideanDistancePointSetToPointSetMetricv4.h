@@ -211,6 +211,22 @@ public:
     }
   itkGetMacro( Percentile, unsigned int );
 
+  /**
+  * Get/Set the cut off percentile cut off value.
+  */
+  void SetSamplingRate( double rate )
+    {
+    if( rate > 0 && rate <= 1 )
+      {
+      m_SamplingRate = rate;
+      }
+    else
+      {
+      itkExceptionMacro( "Sampling percentage value must belong to (0;1]." )
+      }
+    }
+  itkGetMacro( SamplingRate, unsigned int );
+
 
 protected:
   TrimmedEuclideanDistancePointSetToPointSetMetricv4();
@@ -237,6 +253,16 @@ private:
    * Can be used in conjunction with percentile filtering
    * */
   TInternalComputationValueType m_DistanceCutoff;
+
+  /**
+   * Use subsampling to compute gradient
+   */
+  double m_SamplingRate;
+
+  //Create ranges over the point set for multithreaded computation of value and derivatives
+  using PointIdentifierPair = std::pair<PointIdentifier, PointIdentifier>;
+  using PointIdentifierRanges = std::vector<PointIdentifierPair>;
+  const PointIdentifierRanges CreateRanges() const;
 };
 } // end namespace itk
 

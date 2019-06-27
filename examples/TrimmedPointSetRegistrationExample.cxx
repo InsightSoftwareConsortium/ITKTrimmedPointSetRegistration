@@ -79,8 +79,8 @@ void runRegistration( PointSetType::Pointer fixedPoints,
   optimizer->SetMinimumConvergenceValue( 0.0 );
   optimizer->SetConvergenceWindowSize( 10 );
 
-  using AffineRegistrationType = itk::ImageRegistrationMethodv4<FixedImageType,
-        MovingImageType, AffineTransformType, FixedImageType, PointSetType>;
+  using AffineRegistrationType = itk::ImageRegistrationMethodv4< FixedImageType, MovingImageType, 
+                                                    AffineTransformType, FixedImageType, PointSetType >;
   AffineRegistrationType::Pointer affineSimple = AffineRegistrationType::New();
   affineSimple->SetNumberOfLevels(1);
   affineSimple->SetObjectName( "affineSimple" );
@@ -269,6 +269,7 @@ int main( int argc, char *argv[] )
   metric->SetFixedPointSet( fixedPoints );
   metric->SetMovingPointSet( movingPoints );
   metric->SetVirtualDomainFromImage( fixedImage );
+  metric->SetSamplingRate( 0.5 );
   metric->Initialize();
   runRegistration<PointSetMetricType>(fixedPoints, movingPoints, metric, fixedImage, "trimmed-euclidean-points.csv");
   clock.Stop();

@@ -151,7 +151,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
 
   using PointSetMetricType = itk::TrimmedEuclideanDistancePointSetToPointSetMetricv4<PointSetType>;
   PointSetMetricType::Pointer metric = PointSetMetricType::New();
-  metric->SetPercentile(50);
+  metric->SetPercentile(30);
   metric->SetMovingTransform( transform );
   metric->SetFixedPointSet( fixedPoints );
   metric->SetMovingPointSet( movingPoints );
