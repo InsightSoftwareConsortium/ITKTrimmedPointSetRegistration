@@ -25,6 +25,7 @@
 #include "itkTrimmedPointSetToPointSetMetricv4.h"
 #include "itkJensenHavrdaCharvatTsallisPointSetToPointSetMetricv4.h"
 #include "itkEuclideanDistancePointSetToPointSetMetricv4.h"
+#include "itkWeightedEuclideanDistancePointSetToPointSetMetricv4.h"
 #include "itkTrimmedEuclideanDistancePointSetToPointSetMetricv4.h"
 #include "itkTimeProbe.h"
 
@@ -75,9 +76,9 @@ void runRegistration( PointSetType::Pointer fixedPoints,
   optimizer->SetMetric( metric );
   optimizer->SetNumberOfIterations( numberOfIterations );
   optimizer->SetScalesEstimator( shiftScaleEstimator );
-  optimizer->SetMaximumStepSizeInPhysicalUnits( 3 );
+  optimizer->SetMaximumStepSizeInPhysicalUnits( 1 );
   optimizer->SetMinimumConvergenceValue( 0.0 );
-  optimizer->SetConvergenceWindowSize( 10 );
+  optimizer->SetConvergenceWindowSize( 100 );
 
   using AffineRegistrationType = itk::ImageRegistrationMethodv4< FixedImageType, MovingImageType, 
                                                     AffineTransformType, FixedImageType, PointSetType >;
@@ -276,5 +277,20 @@ int main( int argc, char *argv[] )
   std::cout << "Trimmed Euclidean Metric Time : " << clock.GetTotal() << std::endl;
   }
 
+    {
+  itk::TimeProbe clock;
+  clock.Start();
+  using PointSetMetricType = itk::WeightedEuclideanDistancePointSetToPointSetMetricv4<PointSetType>;
+  PointSetMetricType::Pointer metric = PointSetMetricType::New();
+  metric->SetWeight(10);
+  metric->SetMovingTransform( transform );
+  metric->SetFixedPointSet( fixedPoints );
+  metric->SetMovingPointSet( movingPoints );
+  metric->SetVirtualDomainFromImage( fixedImage );
+  metric->Initialize();
+  runRegistration<PointSetMetricType>(fixedPoints, movingPoints, metric, fixedImage, "weighted-euclidean-points.csv");
+  clock.Stop();
+  std::cout << "Weighted Euclidean Metric Time : " << clock.GetTotal() << std::endl;
+  }
   return EXIT_SUCCESS;
 }

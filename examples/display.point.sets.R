@@ -9,4 +9,5 @@ display.pointset <- function(file){
 display.pointset("jensen-points.csv")
 display.pointset("euclidean-points.csv")
 display.pointset("trimmed-euclidean-points.csv")
+display.pointset("weighted-euclidean-points.csv")
 
