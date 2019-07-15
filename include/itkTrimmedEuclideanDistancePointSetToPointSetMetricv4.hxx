@@ -298,7 +298,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     size_t last_index = this->GetNumberOfValidPoints();
     if( m_Percentile < 100)
       {
-      std::sort( values.begin(), values.end(), [](PointDerivativeStorage &a, PointDerivativeStorage &b)
+      std::sort( values.begin(), values.end(), [](PointDerivativeStorage a, PointDerivativeStorage b)
         { return a.value < b.value ? true : false; });
 
       last_index = ( values.size() * this->m_Percentile * this->m_SamplingRate ) / 100;
