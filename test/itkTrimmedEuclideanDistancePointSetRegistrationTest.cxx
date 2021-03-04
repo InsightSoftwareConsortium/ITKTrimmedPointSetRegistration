@@ -1,6 +1,6 @@
 /*=========================================================================
  *
- *  Copyright Insight Software Consortium
+ *  Copyright NumFOCUS
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,17 +15,15 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-
 #include "itkGradientDescentOptimizerv4.h"
 #include "itkRegistrationParameterScalesFromPhysicalShift.h"
 #include "itkCommand.h"
 #include "itkMersenneTwisterRandomVariateGenerator.h"
 #include "itkImageRegistrationMethodv4.h"
 #include "itkAffineTransform.h"
-#include "itkTrimmedPointSetToPointSetMetricv4.h"
-#include "itkJensenHavrdaCharvatTsallisPointSetToPointSetMetricv4.h"
-#include "itkEuclideanDistancePointSetToPointSetMetricv4.h"
 #include "itkTrimmedEuclideanDistancePointSetToPointSetMetricv4.h"
+#include "itkLBFGS2Optimizerv4.h"
+#include "itkConjugateGradientLineSearchOptimizerv4.h"
 
 #include <fstream>
 #include <iostream>
@@ -168,18 +166,19 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
   shiftScaleEstimator->SetVirtualDomainPointSet( metric->GetVirtualTransformedPointSet() );
 
   // optimizer
-  using OptimizerType = itk::GradientDescentOptimizerv4;
-  OptimizerType::Pointer  optimizer = OptimizerType::New();
-  optimizer->SetMetric( metric );
+  typedef itk::ConjugateGradientLineSearchOptimizerv4 OptimizerType;
+  //typedef itk::LBFGS2Optimizerv4 OptimizerType;
+  OptimizerType::Pointer optimizer = OptimizerType::New();
+  optimizer->SetMaximumLineSearchIterations(100);
   optimizer->SetNumberOfIterations( numberOfIterations );
   optimizer->SetScalesEstimator( shiftScaleEstimator );
   optimizer->SetMaximumStepSizeInPhysicalUnits( 3 );
+  optimizer->SetMinimumConvergenceValue( 0.0 );
+  optimizer->SetConvergenceWindowSize( 10 );
 
   using CommandType = itkTrimmedPointSetMetricRegistrationTestCommandIterationUpdate<OptimizerType>;
   CommandType::Pointer observer = CommandType::New();
   optimizer->AddObserver( itk::IterationEvent(), observer );
-  optimizer->SetMinimumConvergenceValue( 0.0 );
-  optimizer->SetConvergenceWindowSize( 10 );
 
   using AffineRegistrationType = itk::ImageRegistrationMethodv4<FixedImageType, MovingImageType, AffineTransformType, FixedImageType, PointSetType>;
   AffineRegistrationType::Pointer affineSimple = AffineRegistrationType::New();
@@ -191,6 +190,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
   affineSimple->SetMetric( metric );
   affineSimple->SetOptimizer( optimizer );
 
+  std::cout << metric->GetValue() << std::endl;
    try
     {
     std::cout << "Trimmed point set affine registration update" << std::endl;
@@ -201,6 +201,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
     std::cerr << "Exception caught: " << e << std::endl;
     return EXIT_FAILURE;
     }
+  std::cout << metric->GetValue() << std::endl;
 
   if(metric->GetValue() < 2){
     return EXIT_SUCCESS;

@@ -1,6 +1,6 @@
 /*=========================================================================
  *
- *  Copyright Insight Software Consortium
+ *  Copyright NumFOCUS
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 #include "itkCompensatedSummation.h"
 
 #include "itkMersenneTwisterRandomVariateGenerator.h"
-#include <random> 
+#include <random>
 
 namespace itk
 {
@@ -199,10 +199,10 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
   const FixedTransformedVectorContainer &fixedTransformedPointSet =
     this->GetFixedTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
 
-  PointIdentifierRanges ranges = this->CreateRanges(); 
+  PointIdentifierRanges ranges = this->CreateRanges();
   std::function< void(int) > collectNeighborhoodValues =
        [ &values, this, &calculateValue, &derivative, &ranges,
-         &virtualTransformedPointSet, &fixedTransformedPointSet] 
+         &virtualTransformedPointSet, &fixedTransformedPointSet]
        (int rangeIndex)
     {
 
@@ -214,18 +214,18 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     NumericTraits<PixelType>::SetLength( pixel, 1 );
     LocalDerivativeType pointDerivative;
     MeasureType pointValue = NumericTraits<MeasureType>::ZeroValue();
-   
-    //One generator per thread to avoid resource sharing 
+
+    //One generator per thread to avoid resource sharing
     using GeneratorType = itk::Statistics::MersenneTwisterRandomVariateGenerator;
     GeneratorType::Pointer generator = GeneratorType::New();
     generator->Initialize();
-   
+
     /* Verify the virtual point is in the virtual domain.
      * If user hasn't defined a virtual space, and the active transform is not
      * a displacement field transform type, then this will always return true. */
     for(int index = ranges[rangeIndex].first; index<ranges[rangeIndex].second; index++)
       {
-        
+
       if(this->m_SamplingRate < 1.0 )
         {
         if( generator->GetVariate() > this->m_SamplingRate )

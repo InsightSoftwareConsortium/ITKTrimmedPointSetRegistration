@@ -1,6 +1,6 @@
 /*=========================================================================
  *
- *  Copyright Insight Software Consortium
+ *  Copyright NumFOCUS
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ namespace itk
 /** \class WeightedEuclideanDistancePointSetToPointSetMetricv4
  * \brief Computes the Euclidan distance metric between two point sets.
  *
- * \ingroup ITKMetricsv4
+ * \ingroup TrimmedPointSetRegistration
  */
 template<typename TFixedPointSet, typename TMovingPointSet = TFixedPointSet,
   class TInternalComputationValueType = double>
@@ -80,7 +80,7 @@ private:
   double ComputeWeight(const double distance) const
     {
     return exp(-(distance*distance) / (m_Weight*m_Weight) );
-    }  
+    }
   double m_Weight;
 };
 } // end namespace itk
