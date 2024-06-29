@@ -1,8 +1,8 @@
 ITKTrimmedPointSetRegistration
 =================================
 
-.. image:: https://dev.azure.com/InsightSoftwareConsortium/ITKModules/_apis/build/status/itktrimmedpointsetregistration?branchName=master
-    :target: https://dev.azure.com/InsightSoftwareConsortium/ITKModules/_build/latest?definitionId=8&branchName=master
+.. image::  https://github.com/InsightSoftwareConsortium/ITKTrimmedPointSetRegistration/actions/workflows/build-test-package.yml/badge.svg
+    :target: https://github.com/InsightSoftwareConsortium/ITKTrimmedPointSetRegistration/actions/workflows/build-test-package.yml
     :alt:    Build Status
 
 .. image:: https://img.shields.io/pypi/v/itk-trimmedpointsetregistration.svg
