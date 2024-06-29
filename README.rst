@@ -18,8 +18,10 @@ Overview
 
 This is a module for trimmed point set registration.
 
-This module implmenets a trimmed euclidean point set metric that implements a an adpative trimming of the point set used during the optimization in the registration process.
+This module provides a trimmed euclidean point set metric that implements a an adaptive trimming of the point set used during the optimization in the registration process: it provides a decorator to the PointSetMetric that overrides the accumulation of the value and derivative computation to use a trimmed number of points.
+
 The itkTrimmedEuclideanDistancePointSetToPointSetMetricv4 is multithreaded and signficantly improves perfromance with the patch https://github.com/InsightSoftwareConsortium/ITK/pull/1037.
+
 Further performance increase can be achieved by subsampling an approximate derivate through SetSamplingRate.
 
 A Simple Example
