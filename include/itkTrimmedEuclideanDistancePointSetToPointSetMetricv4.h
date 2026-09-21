@@ -36,7 +36,7 @@ class ITK_TEMPLATE_EXPORT TrimmedEuclideanDistancePointSetToPointSetMetricv4
 : public EuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 {
 public:
-  ITK_DISALLOW_COPY_AND_ASSIGN(TrimmedEuclideanDistancePointSetToPointSetMetricv4);
+  ITK_DISALLOW_COPY_AND_MOVE(TrimmedEuclideanDistancePointSetToPointSetMetricv4);
 
   /** Standard class type aliases. */
   using Self = TrimmedEuclideanDistancePointSetToPointSetMetricv4;
@@ -206,7 +206,7 @@ public:
       }
     else
       {
-      itkExceptionMacro( "Percentile value must belong to (0;100]." )
+      itkExceptionMacro( "Percentile value must belong to (0;100]." );
       }
     }
   itkGetMacro( Percentile, unsigned int );
@@ -222,7 +222,7 @@ public:
       }
     else
       {
-      itkExceptionMacro( "Sampling percentage value must belong to (0;1]." )
+      itkExceptionMacro( "Sampling percentage value must belong to (0;1]." );
       }
     }
   itkGetMacro( SamplingRate, unsigned int );

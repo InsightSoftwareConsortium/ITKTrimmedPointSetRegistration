@@ -34,7 +34,7 @@ class ITK_TEMPLATE_EXPORT TrimmedPointSetToPointSetMetricv4
 : public EuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointSet, TInternalComputationValueType>
 {
 public:
-  ITK_DISALLOW_COPY_AND_ASSIGN(TrimmedPointSetToPointSetMetricv4);
+  ITK_DISALLOW_COPY_AND_MOVE(TrimmedPointSetToPointSetMetricv4);
 
   /** Standard class type aliases. */
   using Self = TrimmedPointSetToPointSetMetricv4;
@@ -362,7 +362,7 @@ public:
     }
   */
   itkSetObjectMacro(Metric, Superclass);
-  itkGetConstObjectMacro(Metric, Superclass)
+  itkGetConstObjectMacro(Metric, Superclass);
 
 
   void SetFixedTransform( FixedTransformType *fixed) override
@@ -393,7 +393,7 @@ public:
       }
     else
       {
-      itkExceptionMacro( "Percentile value must belong to (0;100]." )
+      itkExceptionMacro( "Percentile value must belong to (0;100]." );
       }
     }
   itkGetMacro( Percentile, unsigned int );
