@@ -6,7 +6,7 @@
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0.txt
+ *         https://www.apache.org/licenses/LICENSE-2.0.txt
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -99,7 +99,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
 
   // Generate two noisy ellipses
   unsigned int nSourcePoints= 1000;
-  for(int i=0; i< nSourcePoints; i++ )
+  for(unsigned int i=0; i< nSourcePoints; i++ )
     {
     float radius = 100.0;
 
@@ -111,7 +111,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
     }
 
   unsigned int nTargetPoints= 1200;
-  for(int i=0; i< nTargetPoints; i++ )
+  for(unsigned int i=0; i< nTargetPoints; i++ )
     {
     float radius = 100.0;
 
