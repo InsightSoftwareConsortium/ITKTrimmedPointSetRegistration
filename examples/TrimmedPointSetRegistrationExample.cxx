@@ -113,14 +113,14 @@ void runRegistration( PointSetType::Pointer fixedPoints,
     PointType transformedMovingPoint =
             affineInverseTransform->TransformPoint( movingPoints->GetPoint( n ) );
     myfile << "Moving";
-    for(int i=0; i<PointType::PointDimension; i++)
+    for(unsigned int i=0; i<PointType::PointDimension; i++)
       {
       myfile << ", " << movingPoint[i];
       }
     myfile << std::endl;
 
     myfile << "MovingTransformed";
-    for(int i=0; i<PointType::PointDimension; i++)
+    for(unsigned int i=0; i<PointType::PointDimension; i++)
       {
       myfile << ", " << transformedMovingPoint[i];
       }
@@ -133,14 +133,14 @@ void runRegistration( PointSetType::Pointer fixedPoints,
     PointType transformedFixedPoint =
             affineSimple->GetModifiableTransform()->TransformPoint( fixedPoints->GetPoint( n ) );
     myfile << "Fixed";
-    for(int i=0; i<PointType::PointDimension; i++)
+    for(unsigned int i=0; i<PointType::PointDimension; i++)
       {
       myfile << ", " << fixedPoint[i];
       }
     myfile << std::endl;
 
     myfile << "FixedTransformed";
-    for(int i=0; i<PointType::PointDimension; i++)
+    for(unsigned int i=0; i<PointType::PointDimension; i++)
       {
       myfile << ", " << transformedFixedPoint[i];
       }
@@ -178,7 +178,7 @@ int main( int argc, char *argv[] )
 
   // Generate two noisy ellipses
   unsigned int nSourcePoints= 4000;
-  for(int i=0; i< nSourcePoints; i++ )
+  for(unsigned int i=0; i< nSourcePoints; i++ )
     {
     float radius = 100.0;
 
@@ -190,7 +190,7 @@ int main( int argc, char *argv[] )
     }
 
   unsigned int nTargetPoints= 4200;
-  for(int i=0; i< nTargetPoints; i++ )
+  for(unsigned int i=0; i< nTargetPoints; i++ )
     {
     float radius = 100.0;
 

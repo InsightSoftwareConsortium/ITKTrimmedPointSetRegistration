@@ -186,7 +186,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
 
   //Collect derviatives at each point
   std::vector< PointDerivativeStorage > values( this->GetFixedTransformedPointSet()->GetNumberOfPoints() );
-  for(int i=0; i < values.size(); i++)
+  for(size_t i=0; i < values.size(); i++)
     {
     values[i].value = NumericTraits<MeasureType>::max();
     values[i].index = i;
@@ -223,7 +223,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     /* Verify the virtual point is in the virtual domain.
      * If user hasn't defined a virtual space, and the active transform is not
      * a displacement field transform type, then this will always return true. */
-    for(int index = ranges[rangeIndex].first; index<ranges[rangeIndex].second; index++)
+    for(PointIdentifier index = ranges[rangeIndex].first; index<ranges[rangeIndex].second; index++)
       {
 
       if(this->m_SamplingRate < 1.0 )
@@ -314,7 +314,7 @@ TrimmedEuclideanDistancePointSetToPointSetMetricv4<TFixedPointSet, TMovingPointS
     const VirtualVectorContainer &virtualTransformedPointSet =
       this->GetVirtualTransformedPointSet()->GetPoints()->CastToSTLConstContainer();
     unsigned int nValidDistances = 0;
-    for( int valueIndex=0; valueIndex < last_index; valueIndex++)
+    for( size_t valueIndex=0; valueIndex < last_index; valueIndex++)
       {
       PointDerivativeStorage &el = values[valueIndex];
       PointIdentifier pointIndex = el.index;

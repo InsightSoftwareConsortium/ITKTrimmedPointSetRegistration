@@ -99,7 +99,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
 
   // Generate two noisy ellipses
   unsigned int nSourcePoints= 1000;
-  for(int i=0; i< nSourcePoints; i++ )
+  for(unsigned int i=0; i< nSourcePoints; i++ )
     {
     float radius = 100.0;
 
@@ -111,7 +111,7 @@ int itkTrimmedEuclideanDistancePointSetRegistrationTest( int argc, char *argv[] 
     }
 
   unsigned int nTargetPoints= 1200;
-  for(int i=0; i< nTargetPoints; i++ )
+  for(unsigned int i=0; i< nTargetPoints; i++ )
     {
     float radius = 100.0;
 
